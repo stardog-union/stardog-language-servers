@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+dist/
+*.swp
+*.un~
+*.iml
+.project
+.settings
+.vscode
+bin/
+yarn-error.log
+coverage/
+
