@@ -1,7 +1,5 @@
 export * from './common';
 
-// import * as stream from "stream";
-// import * as net from "net";
 import * as yargs from "yargs";
 import { createConnection, IConnection } from "vscode-languageserver";
 import { IPCMessageReader, IPCMessageWriter, createServerSocketTransport, createServerPipeTransport } from "vscode-jsonrpc";
