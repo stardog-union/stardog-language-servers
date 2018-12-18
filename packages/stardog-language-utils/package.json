@@ -5,6 +5,46 @@
   "browser": "./dist/worker.js",
   "types": "./dist/types",
   "license": "Apache-2.0",
+  "keywords": [
+    "stardog",
+    "languages",
+    "utilities",
+    "rdf",
+    "query",
+    "knowledge graph"
+  ],
+  "author": {
+    "name": "Stardog Union",
+    "url": "https://stardog.com"
+  },
+  "contributors": [
+    {
+      "name": "Jason Rogers",
+      "email": "jason@stardog.com"
+    },
+    {
+      "name": "Ty Soehngen",
+      "email": "ty@stardog.com"
+    },
+    {
+      "name": "Sandy Gonzales",
+      "email": "sandy@stardog.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stardog-union/stardog-language-servers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stardog-union/stardog-language-servers/issues"
+  },
+  "homepage": "https://github.com/stardog-union/stardog-language-servers#readme",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
   "devDependencies": {
     "@types/node": "^10.12.15",
     "@types/yargs": "^12.0.1",

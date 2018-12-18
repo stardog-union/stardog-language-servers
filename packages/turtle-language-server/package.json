@@ -4,6 +4,46 @@
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "license": "Apache-2.0",
+  "keywords": [
+    "turtle",
+    "stardog",
+    "language server",
+    "rdf",
+    "linked data",
+    "knowledge graph"
+  ],
+  "author": {
+    "name": "Stardog Union",
+    "url": "https://stardog.com"
+  },
+  "contributors": [
+    {
+      "name": "Jason Rogers",
+      "email": "jason@stardog.com"
+    },
+    {
+      "name": "Ty Soehngen",
+      "email": "ty@stardog.com"
+    },
+    {
+      "name": "Sandy Gonzales",
+      "email": "sandy@stardog.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stardog-union/stardog-language-servers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stardog-union/stardog-language-servers/issues"
+  },
+  "homepage": "https://github.com/stardog-union/stardog-language-servers#readme",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniq": "^4.5.0",
