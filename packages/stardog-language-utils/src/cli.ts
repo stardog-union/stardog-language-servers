@@ -1,7 +1,12 @@
 export * from './common';
-import * as yargs from "yargs";
-import { createConnection, IConnection } from "vscode-languageserver";
-import { IPCMessageReader, IPCMessageWriter, createServerSocketTransport, createServerPipeTransport } from "vscode-jsonrpc";
+import * as yargs from 'yargs';
+import { createConnection, IConnection } from 'vscode-languageserver';
+import {
+  IPCMessageReader,
+  IPCMessageWriter,
+  createServerSocketTransport,
+  createServerPipeTransport,
+} from 'vscode-jsonrpc';
 
 enum LspTransportMethod {
   IPC = 'node-ipc',
@@ -58,7 +63,8 @@ export const getCliConnection = (language: string): IConnection => {
     .option(LspTransportMethod.PIPE, {
       describe: `Use a ${
         LspTransportMethod.PIPE
-      } to communicate with the server`,
+      } (with a name like --pipe=/tmp/named-pipe) to communicate with the server`,
+      type: 'string',
     })
     .option(LspTransportMethod.SOCKET, {
       describe: `Use a ${

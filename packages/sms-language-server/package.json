@@ -56,7 +56,7 @@
     "precommit": "lint-staged",
     "clean": "rimraf ./dist",
     "lint": "tslint --project tsconfig.json",
-    "test": "yarn lint && jest",
+    "test": "yarn lint && jest --config ../../jest.config.js",
     "pack": "webpack",
     "build": "run-s clean test pack types",
     "dev": "webpack -w",
