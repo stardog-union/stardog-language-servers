@@ -30,7 +30,7 @@ using our [Visual Studio Code Extension](TODO).
 
 ## Integrating with Other Editors
 
-Different editors support language servers in different ways. [Neovim], for
+Different editors support language servers in different ways. [Neovim](https://neovim.io/), for
 example, requires that you install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim),
 install the language server on your system, and then edit your Neovim
 configuration file (`init.vim`) to register the server for the relevant
