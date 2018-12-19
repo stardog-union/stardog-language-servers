@@ -10,10 +10,17 @@ import {
   IConnection,
   CompletionItem,
   CompletionItemKind,
-  TextEdit
-} from "vscode-languageserver";
-import { StardogSparqlParser, traverse, isCstNode, sparqlKeywords, IToken, CstNode } from "millan";
-import { autoBindMethods } from "class-autobind-decorator";
+  TextEdit,
+} from 'vscode-languageserver';
+import {
+  StardogSparqlParser,
+  traverse,
+  isCstNode,
+  sparqlKeywords,
+  IToken,
+  CstNode,
+} from 'millan';
+import { autoBindMethods } from 'class-autobind-decorator';
 import {
   getUniqueIdentifiers,
   isVar,
@@ -25,9 +32,9 @@ import {
   abbreviatePrefixObj,
   namespaceArrayToObj,
   LSPExtensionMethod,
-  SparqlCompletionData
-} from "stardog-language-utils";
-import uniq from "lodash.uniq";
+  SparqlCompletionData,
+} from 'stardog-language-utils';
+import uniq from 'lodash.uniq';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 
@@ -35,7 +42,7 @@ const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 export class SparqlLanguageServer {
   protected readonly documents = new TextDocuments();
   private parser = new StardogSparqlParser({
-    config: { errorMessageProvider }
+    config: { errorMessageProvider },
   });
   private latestTokens: IToken[];
   private latestCst: CstNode;
@@ -66,10 +73,10 @@ export class SparqlLanguageServer {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
         completionProvider: {
-          triggerCharacters: ["<", ":", "?", "$"]
+          triggerCharacters: ['<', ':', '?', '$'],
         },
-        hoverProvider: true
-      }
+        hoverProvider: true,
+      },
     };
   }
 
@@ -80,18 +87,18 @@ export class SparqlLanguageServer {
     if (update.relationshipBindings) {
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        update.relationshipBindings.map(binding => ({
+        update.relationshipBindings.map((binding) => ({
           iri: binding.relationship.value,
-          count: binding.count.value
+          count: binding.count.value,
         }))
       );
     }
     if (update.typeBindings) {
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        update.typeBindings.map(binding => ({
+        update.typeBindings.map((binding) => ({
           iri: binding.type.value,
-          count: binding.count.value
+          count: binding.count.value,
         }))
       );
     }
@@ -104,7 +111,8 @@ export class SparqlLanguageServer {
     const prefixed: CompletionItem[] = [];
     const full: CompletionItem[] = irisAndCounts.map(({ iri, count }) => {
       let prefixedIri;
-      const alphaSortTextForCount = ARBITRARILY_LARGE_NUMBER - parseInt(count, 10);
+      const alphaSortTextForCount =
+        ARBITRARILY_LARGE_NUMBER - parseInt(count, 10);
       if (namespaceMap) {
         prefixedIri = abbreviatePrefixObj(iri, namespaceMap);
       }
@@ -121,14 +129,14 @@ export class SparqlLanguageServer {
           // here we concatenate both the full iri and the prefixed iri so that users who begin typing
           // the full iri will see the prefixed alternative
           filterText: `<${iri}>${prefixedIri}`,
-          detail: `${count} occurrences`
+          detail: `${count} occurrences`,
         });
       }
       return {
         label: `<${iri}>`,
         kind: CompletionItemKind.EnumMember,
         sortText: `01${alphaSortTextForCount}${iri}`,
-        detail: `${count} occurrences`
+        detail: `${count} occurrences`,
       };
     });
     const fullList = full.concat(prefixed);
@@ -184,7 +192,7 @@ export class SparqlLanguageServer {
       },
       {
         startOffset: content.length,
-        endOffset: 0
+        endOffset: 0,
       }
     );
 
@@ -195,7 +203,7 @@ export class SparqlLanguageServer {
 
     if (!cursorTkn) {
       return {
-        contents: []
+        contents: [],
       };
     }
     return {
@@ -204,8 +212,8 @@ ${currentRule}
 \`\`\``,
       range: {
         start: document.positionAt(currentRuleRange.startOffset),
-        end: document.positionAt(currentRuleRange.endOffset + 1)
-      }
+        end: document.positionAt(currentRuleRange.endOffset + 1),
+      },
     };
   }
 
@@ -213,7 +221,7 @@ ${currentRule}
     const document = this.documents.get(params.textDocument.uri);
     const tokens = this.latestTokens;
 
-    const tokenIdxAtCursor = tokens.findIndex(tkn => {
+    const tokenIdxAtCursor = tokens.findIndex((tkn) => {
       if (
         tkn.startOffset <= document.offsetAt(params.position) &&
         tkn.endOffset + 1 >= document.offsetAt(params.position)
@@ -231,29 +239,37 @@ ${currentRule}
     const tokensUpToCursor = tokens.slice(0, tokenIdxAtCursor);
     const tokensAfterCursor = tokens.slice(tokenIdxAtCursor + 1);
     const tokenBeforeCursor = tokens[tokenIdxAtCursor - 1];
-    const tokensBeforeAndAfterCursor = [...tokensUpToCursor, ...tokensAfterCursor];
+    const tokensBeforeAndAfterCursor = [
+      ...tokensUpToCursor,
+      ...tokensAfterCursor,
+    ];
 
-    const { vars, prefixes, localNames, iris } = getUniqueIdentifiers(tokensBeforeAndAfterCursor);
+    const { vars, prefixes, localNames, iris } = getUniqueIdentifiers(
+      tokensBeforeAndAfterCursor
+    );
 
-    const candidates = this.parser.computeContentAssist("SparqlDoc", tokensUpToCursor);
+    const candidates = this.parser.computeContentAssist(
+      'SparqlDoc',
+      tokensUpToCursor
+    );
 
     const replaceTokenAtCursor = (replacement: string): TextEdit =>
       TextEdit.replace(
         {
           start: document.positionAt(tokenAtCursor.startOffset),
-          end: document.positionAt(tokenAtCursor.endOffset + 1)
+          end: document.positionAt(tokenAtCursor.endOffset + 1),
         },
         replacement
       );
 
-    const variableCompletions: CompletionItem[] = vars.map(variable => {
+    const variableCompletions: CompletionItem[] = vars.map((variable) => {
       return {
         label: variable,
         kind: CompletionItemKind.Variable,
-        sortText: candidates.some(tkn => isVar(tkn.nextTokenType.tokenName))
+        sortText: candidates.some((tkn) => isVar(tkn.nextTokenType.tokenName))
           ? `1${variable}` // number prefix used to force ordering of suggestions to user
           : null,
-        textEdit: replaceTokenAtCursor(variable)
+        textEdit: replaceTokenAtCursor(variable),
       };
     });
 
@@ -261,46 +277,52 @@ ${currentRule}
       prefixes.push(...Object.keys(this.namespaceMap));
     }
 
-    const prefixCompletions: CompletionItem[] = prefixes.map(prefix => {
-      const label = prefix.replace(/:$/, "");
+    const prefixCompletions: CompletionItem[] = prefixes.map((prefix) => {
+      const label = prefix.replace(/:$/, '');
       return {
         label,
         kind: CompletionItemKind.EnumMember,
-        sortText: candidates.some(tkn => isPrefix(tkn.nextTokenType.tokenName))
+        sortText: candidates.some((tkn) =>
+          isPrefix(tkn.nextTokenType.tokenName)
+        )
           ? `2${label}` // number prefix used to force ordering of suggestions to user
           : null,
-        textEdit: replaceTokenAtCursor(prefix)
+        textEdit: replaceTokenAtCursor(prefix),
       };
     });
 
-    const localCompletions: CompletionItem[] = localNames.map(local => ({
+    const localCompletions: CompletionItem[] = localNames.map((local) => ({
       label: local,
       kind: CompletionItemKind.EnumMember,
-      sortText: candidates.some(tkn => isLocalName(tkn.nextTokenType.tokenName))
+      sortText: candidates.some((tkn) =>
+        isLocalName(tkn.nextTokenType.tokenName)
+      )
         ? `2${local}` // number prefix used to force ordering of suggestions to user
         : null,
-      textEdit: replaceTokenAtCursor(local)
+      textEdit: replaceTokenAtCursor(local),
     }));
 
-    const iriCompletions: CompletionItem[] = iris.map(iri => ({
+    const iriCompletions: CompletionItem[] = iris.map((iri) => ({
       label: iri,
       kind: CompletionItemKind.EnumMember,
-      sortText: candidates.some(tkn => isIriRef(tkn.nextTokenType.tokenName))
+      sortText: candidates.some((tkn) => isIriRef(tkn.nextTokenType.tokenName))
         ? `2${iri}` // number prefix used to force ordering of suggestions to user
         : null,
-      textEdit: replaceTokenAtCursor(iri)
+      textEdit: replaceTokenAtCursor(iri),
     }));
 
     // Unlike the previous completion types, sparqlKeywords only appear in dropdown if they're valid
     const keywordCompletions = uniq(
       candidates
-        .filter(item => item.nextTokenType.tokenName in sparqlKeywords)
-        .filter(item => item.nextTokenType.tokenName !== tokenAtCursor.image)
-        .map(keywordTkn => regexPatternToString(keywordTkn.nextTokenType.PATTERN))
-    ).map(keyword => ({
+        .filter((item) => item.nextTokenType.tokenName in sparqlKeywords)
+        .filter((item) => item.nextTokenType.tokenName !== tokenAtCursor.image)
+        .map((keywordTkn) =>
+          regexPatternToString(keywordTkn.nextTokenType.PATTERN)
+        )
+    ).map((keyword) => ({
       label: keyword,
       kind: CompletionItemKind.Keyword,
-      textEdit: replaceTokenAtCursor(keyword)
+      textEdit: replaceTokenAtCursor(keyword),
     }));
 
     const finalCompletions = [
@@ -308,10 +330,11 @@ ${currentRule}
       ...prefixCompletions,
       ...localCompletions,
       ...iriCompletions,
-      ...keywordCompletions
+      ...keywordCompletions,
     ];
 
-    const shouldIncludeTypes = tokenBeforeCursor && tokenBeforeCursor.tokenType.tokenName === "A";
+    const shouldIncludeTypes =
+      tokenBeforeCursor && tokenBeforeCursor.tokenType.tokenName === 'A';
 
     // Each "candidate" is essentially a tokenType that would be valid as the next entry
     // in the query. Also contained on the candidate is a "rule stack": an array
@@ -320,26 +343,28 @@ ${currentRule}
     // any of the rules that signify "edges" in a graph.
     //
     // N.B. In the SPARQL grammar, this happens to be any rule that contains the token 'a'.
-    const shouldIncludeRelationships = candidates.some(candidate => {
-      return candidate.ruleStack.some(rule => {
-        return ["Verb", "PathPrimary", "PathOneInPropertySet"].some(verbRule => rule === verbRule);
+    const shouldIncludeRelationships = candidates.some((candidate) => {
+      return candidate.ruleStack.some((rule) => {
+        return ['Verb', 'PathPrimary', 'PathOneInPropertySet'].some(
+          (verbRule) => rule === verbRule
+        );
       });
     });
 
     if (this.relationshipCompletionItems.length && shouldIncludeRelationships) {
       finalCompletions.push(
-        ...this.relationshipCompletionItems.map(item => ({
+        ...this.relationshipCompletionItems.map((item) => ({
           ...item,
-          textEdit: replaceTokenAtCursor(item.label)
+          textEdit: replaceTokenAtCursor(item.label),
         }))
       );
     }
 
     if (this.typeCompletionItems.length && shouldIncludeTypes) {
       finalCompletions.push(
-        ...this.typeCompletionItems.map(item => ({
+        ...this.typeCompletionItems.map((item) => ({
           ...item,
-          textEdit: replaceTokenAtCursor(item.label)
+          textEdit: replaceTokenAtCursor(item.label),
         }))
       );
     }
@@ -357,7 +382,7 @@ ${currentRule}
     if (!content.length) {
       this.connection.sendDiagnostics({
         uri: change.document.uri,
-        diagnostics: []
+        diagnostics: [],
       });
       return;
     }
@@ -383,7 +408,7 @@ ${currentRule}
         const { message, context, token } = error;
         const { ruleStack } = context;
         const range =
-          token.tokenType.tokenName === "EOF"
+          token.tokenType.tokenName === 'EOF'
             ? Range.create(
                 change.document.positionAt(content.length),
                 change.document.positionAt(content.length)
@@ -397,19 +422,19 @@ ${currentRule}
           message,
           source: ruleStack.length ? ruleStack.pop() : null,
           severity: DiagnosticSeverity.Error,
-          range
+          range,
         };
       }
     );
 
     const finalDiagnostics = [
       // ...lexDiagnostics,
-      ...parseDiagnostics
+      ...parseDiagnostics,
     ];
 
     this.connection.sendDiagnostics({
       uri: change.document.uri,
-      diagnostics: finalDiagnostics
+      diagnostics: finalDiagnostics,
     });
   }
 }
