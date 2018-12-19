@@ -15,6 +15,21 @@ import {
 } from 'vscode-languageserver-protocol';
 import * as portscanner from 'portscanner';
 
+export const getStdioConnection = (pathToServer: string) => {
+  const cp = spawn('ts-node', [
+    '--compilerOptions',
+    JSON.stringify({ module: 'commonjs' }),
+    pathToServer,
+    '--stdio',
+  ]);
+  const connection = createProtocolConnection(
+    new StreamMessageReader(cp.stdout),
+    new StreamMessageWriter(cp.stdin),
+    null
+  );
+  return { child_process: cp, connection };
+};
+
 export const testInitHandshake = (
   connection: ProtocolConnection,
   done: jest.DoneCallback
@@ -38,17 +53,8 @@ export const testInitHandshakeForAllTransports = (pathToServer: string) =>
     let cp: ChildProcess;
     afterEach(() => cp.kill());
     it('performs LSP initialization via stdio', (done) => {
-      cp = spawn('ts-node', [
-        '--compilerOptions',
-        JSON.stringify({ module: 'commonjs' }),
-        pathToServer,
-        '--stdio',
-      ]);
-      const connection = createProtocolConnection(
-        new StreamMessageReader(cp.stdout),
-        new StreamMessageWriter(cp.stdin),
-        null
-      );
+      const { child_process, connection } = getStdioConnection(pathToServer);
+      cp = child_process;
       testInitHandshake(connection, done);
     });
     it('performs LSP initialization via IPC', (done) => {

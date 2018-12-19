@@ -34,7 +34,7 @@ import {
   LSPExtensionMethod,
   SparqlCompletionData,
 } from 'stardog-language-utils';
-import uniq from 'lodash.uniq';
+import * as uniq from 'lodash.uniq';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 
