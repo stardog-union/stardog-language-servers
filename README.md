@@ -5,6 +5,8 @@ languages, including [SPARQL](https://en.wikipedia.org/wiki/SPARQL),
 [Turtle](https://en.wikipedia.org/wiki/Turtle_(syntax)), and
 [Stardog Mapping Syntax 2 (SMS)](https://www.stardog.com/docs/#_stardog_mapping_syntax_2).
 
+This work is the basis of [Stardog Studio](http://stardog.com/studio), the Knowledge Graph IDE for Stardog.
+
 ## Features
 
 - Support for all transports specified in the [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol/) 
