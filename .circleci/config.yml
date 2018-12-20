@@ -1,0 +1,51 @@
+version: 2
+references:
+  working_directory: &working_directory ~/stardog-language-servers
+jobs:
+  build:
+    docker:
+      - image: circleci/node:8.9-stretch
+    working_directory: *working_directory
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          # This branch if available
+          - dependency-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          # Default branch if not
+          - dependency-cache-develop-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install Node Modules
+          command: yarn
+      - save_cache:
+          key: dependency-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+          - ./node_modules
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./
+  test:
+    docker:
+      - image: circleci/node:8.9-stretch
+    working_directory: *working_directory
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Tests
+          command: yarn test
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - build
