@@ -34,7 +34,9 @@ jobs:
           at: .
       - run:
           name: Tests
-          command: yarn test
+          command: |
+            yarn build
+            yarn test
 workflows:
   version: 2
   build_and_test:
