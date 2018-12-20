@@ -24,4 +24,5 @@ module.exports = {
     '.*fixtures.*',
   ],
   coverageReporters: ['json', 'lcov', 'text', 'text-summary'],
+  setupTestFrameworkScriptFile: './jest.setup.js',
 };
