@@ -1,5 +1,5 @@
 import { getWorkerConnection } from 'stardog-language-utils';
-import { SparqlLanguageServer } from "SparqlLanguageServer";
+import { SparqlLanguageServer } from "./SparqlLanguageServer";
 
 const connection = getWorkerConnection();
 const server = new SparqlLanguageServer(connection);

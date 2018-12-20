@@ -85,6 +85,24 @@ describe('sparql capabilities', () => {
       position: Position.create(0, 3),
     });
     expect(res).toHaveLength(25);
+    expect(res[0]).toMatchObject({
+      label: '?a',
+      kind: 6,
+      sortText: null,
+      textEdit: {
+        range: {
+          start: {
+            line: 0,
+            character: 0,
+          },
+          end: {
+            line: 0,
+            character: 6,
+          },
+        },
+        newText: '?a',
+      },
+    });
     done();
   });
 });
