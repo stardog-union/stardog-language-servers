@@ -4979,8 +4979,8 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
 
 millan@^2.0.0:
   version "2.0.0"
-  resolved "https://registry.yarnpkg.com/millan/-/millan-2.0.0.tgz#51ea1643d89c286d188c93c2b6e1051f8eeb3744"
-  integrity sha1-UeoWQ9icKG0YjJPCtuEFH47rN0Q=
+  resolved "https://registry.yarnpkg.com/millan/-/millan-2.0.0.tgz#71829a50095a42cc94e8f7f7cc4f5ad8367b91b3"
+  integrity sha1-cYKaUAlaQsyU6Pf3zE9a2DZ7kbM=
   dependencies:
     chevrotain "3.0.1"
 
