@@ -4,7 +4,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const SRC_DIR = path.join(__dirname, 'src');
 
 const cliConfig = {
-  mode: 'development',
+  mode: 'production',
   target: 'node',
   entry: path.join(SRC_DIR, 'cli.ts'),
   output: {
@@ -54,7 +54,7 @@ const cliConfig = {
 };
 
 const workerConfig = {
-  mode: 'development',
+  mode: 'production',
   target: 'webworker',
   entry: path.join(SRC_DIR, 'worker.ts'),
   output: {
