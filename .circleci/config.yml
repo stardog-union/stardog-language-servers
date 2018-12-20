@@ -18,7 +18,7 @@ jobs:
           name: Install Node Modules
           command: yarn
       - save_cache:
-          key: dependency-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          key: dependency-cache-{{ .Environment.CACHE_VERSION }}-{{ .Branch }}-{{ checksum "yarn.lock" }}
           paths:
           - ./node_modules
       - persist_to_workspace:
