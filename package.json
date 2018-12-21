@@ -1,6 +1,35 @@
 {
   "name": "stardog-language-servers",
   "private": true,
+  "author": {
+    "name": "Stardog Union",
+    "url": "https://stardog.com"
+  },
+  "contributors": [
+    {
+      "name": "Jason Rogers",
+      "email": "jason@stardog.com"
+    },
+    {
+      "name": "Ty Soehngen",
+      "email": "ty@stardog.com"
+    },
+    {
+      "name": "Sandy Gonzales",
+      "email": "sandy@stardog.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stardog-union/stardog-language-servers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stardog-union/stardog-language-servers/issues"
+  },
+  "homepage": "https://github.com/stardog-union/stardog-language-servers#readme",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "devDependencies": {
     "@types/jest": "^23.3.10",
     "husky": "^1.2.1",
@@ -24,7 +53,8 @@
     "pack": "lerna run pack",
     "build": "lerna run build",
     "types": "lerna run types",
-    "format": "prettier 'packages/*/src/**/*.[tj]s' -- write"
+    "format": "prettier 'packages/*/src/**/*.[tj]s' -- write",
+    "publish": "lerna publish --skip-git"
   },
   "husky": {
     "hooks": {
