@@ -48,41 +48,29 @@
   ],
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
-    "lodash.uniq": "^4.5.0",
     "millan": "^2.0.0",
     "stardog-language-utils": "^1.0.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
-    "precommit": "lint-staged",
     "clean": "rimraf ./dist",
     "lint": "tslint --project tsconfig.json",
-    "test": "yarn lint && jest --config ../../jest.config.js",
     "pack": "webpack",
-    "build": "run-s clean test pack types",
+    "build": "run-s clean lint pack types",
     "dev": "webpack -w",
-    "format": "prettier 'src/**/*.[tj]s' -- write",
     "types": "tsc --emitDeclarationOnly"
   },
-  "lint-staged": {
-    "linters": {
-      "src/**/*.[tj]s": [
-        "prettier --write",
-        "git add"
-      ]
-    }
-  },
   "devDependencies": {
+    "ci-info": "^2.0.0",
     "fork-ts-checker-webpack-plugin": "^0.5.2",
-    "jest": "^23.6.0",
-    "lint-staged": "^8.1.0",
-    "prettier": "^1.15.3",
     "rimraf": "^2.6.2",
     "ts-loader": "^5.3.1",
     "tslint": "^5.11.0",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
     "tslint-loader": "^3.5.4",
+    "typescript": "^3.2.2",
+    "vscode-languageserver-protocol": "^3.14.1",
     "webpack": "^4.27.1",
     "webpack-cli": "^3.1.2"
   }

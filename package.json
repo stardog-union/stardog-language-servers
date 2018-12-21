@@ -2,8 +2,13 @@
   "name": "stardog-language-servers",
   "private": true,
   "devDependencies": {
+    "@types/jest": "^23.3.10",
+    "jest": "^23.6.0",
     "lerna": "^3.6.0",
+    "lint-staged": "^8.1.0",
     "portscanner": "^2.2.0",
+    "prettier": "^1.15.3",
+    "ts-jest": "^23.10.5",
     "typescript": "^3.2.2",
     "vscode-jsonrpc": "^4.0.0",
     "vscode-languageserver-protocol": "^3.14.1"
@@ -12,12 +17,21 @@
     "packages/*"
   ],
   "scripts": {
+    "precommit": "lint-staged",
     "clean": "lerna run clean",
     "lint": "lerna run lint",
     "test": "jest",
+    "pack": "lerna run pack",
     "build": "lerna run build",
     "types": "lerna run types",
-    "update-version": "lerna publish --skip-git --skip-npm --force-publish '*'",
-    "publish-packages": "./scripts/publish"
+    "format": "prettier 'packages/*/src/**/*.[tj]s' -- write"
+  },
+  "lint-staged": {
+    "linters": {
+      "packages/*/src/**/*.[tj]s": [
+        "prettier --write",
+        "git add"
+      ]
+    }
   }
 }
