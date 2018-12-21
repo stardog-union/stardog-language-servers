@@ -1,10 +1,8 @@
 const path = require('path');
-const os = require('os');
 const { isCI } = require('ci-info');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
-const MAX_CI_CPUS = Math.min(4, os.cpus().length - 2); // CI memory limits make build OOM if too many CPUs are used
 
 const cliConfig = {
   mode: 'production',
@@ -50,7 +48,8 @@ const cliConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
-      workers: isCI ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
+      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
@@ -100,7 +99,8 @@ const workerConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
-      workers: isCI ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
+      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
