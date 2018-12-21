@@ -11,9 +11,14 @@ import {
   CompletionItem,
   CompletionItemKind,
   TextEdit,
+  InitializeParams,
+  ResponseError,
+  ErrorCodes,
+  StarRequestHandler,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
+  W3SpecSparqlParser,
   traverse,
   isCstNode,
   sparqlKeywords,
@@ -41,9 +46,7 @@ const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 @autoBindMethods
 export class SparqlLanguageServer {
   protected readonly documents = new TextDocuments();
-  private parser = new StardogSparqlParser({
-    config: { errorMessageProvider },
-  });
+  private parser: StardogSparqlParser | W3SpecSparqlParser;
   private latestTokens: IToken[];
   private latestCst: CstNode;
 
@@ -54,20 +57,50 @@ export class SparqlLanguageServer {
   constructor(protected readonly connection: IConnection) {
     this.documents.listen(this.connection);
     this.documents.onDidChangeContent(this.handleContentChange);
+    this.connection.onRequest(this.handleUninitializedRequest);
     this.connection.onInitialize(this.handleInitialization);
-    this.connection.onCompletion(this.handleCompletion);
-    this.connection.onHover(this.handleHover);
-    this.connection.onNotification(
-      LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
-      this.handleUpdateCompletionData
-    );
   }
 
   start() {
     this.connection.listen();
   }
 
-  handleInitialization(_params): InitializeResult {
+  handleUninitializedRequest: StarRequestHandler = () =>
+    new ResponseError(
+      ErrorCodes.ServerNotInitialized,
+      'Expecting "initialize" request from client.'
+    );
+  handleUnhandledRequest: StarRequestHandler = (method) =>
+    new ResponseError(
+      ErrorCodes.MethodNotFound,
+      `Request: "${method}" is not handled by the server.`
+    );
+
+  handleInitialization(params: InitializeParams): InitializeResult {
+    // Setting this StarHandler is intended to overwrite the handler set
+    // in the constructor, which always responded with a "Server not initialized"
+    // error. Here, we're initialized, so we replace with an "Unhandled method"
+    this.connection.onRequest(this.handleUnhandledRequest);
+    this.connection.onCompletion(this.handleCompletion);
+    this.connection.onHover(this.handleHover);
+    this.connection.onNotification(
+      LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
+      this.handleUpdateCompletionData
+    );
+
+    if (
+      params.initializationOptions &&
+      params.initializationOptions.grammar === 'w3'
+    ) {
+      this.parser = new W3SpecSparqlParser({
+        config: { errorMessageProvider },
+      });
+    } else {
+      this.parser = new StardogSparqlParser({
+        config: { errorMessageProvider },
+      });
+    }
+
     return {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode

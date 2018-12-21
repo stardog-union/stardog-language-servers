@@ -2,6 +2,7 @@ import { join, resolve } from 'path';
 import {
   testInitHandshakeForAllTransports,
   getStdioConnection,
+  testShutdown,
 } from '../../../utils/testUtils';
 import {
   InitializeRequest,
@@ -15,11 +16,12 @@ import {
 } from 'vscode-languageserver-protocol';
 import { ChildProcess } from 'child_process';
 
-const server = resolve(join(__dirname, '..', 'src', 'cli.ts'));
+const pathToServer = resolve(join(__dirname, '..', 'src', 'cli.ts'));
 
-testInitHandshakeForAllTransports(server);
+testInitHandshakeForAllTransports(pathToServer);
+testShutdown(pathToServer);
 
-describe('turtle capabilities', () => {
+describe('turtle language server', () => {
   let cp: ChildProcess;
   let connection: ProtocolConnection;
   const textDocument = TextDocumentItem.create(
@@ -29,7 +31,7 @@ describe('turtle capabilities', () => {
     '<someIri> <anotherIri> <partOfAnIri'
   );
   beforeAll(async () => {
-    const processAndConn = getStdioConnection(server);
+    const processAndConn = getStdioConnection(pathToServer);
     connection = processAndConn.connection;
     cp = processAndConn.child_process;
 

@@ -12,6 +12,8 @@ import {
   InitializeRequest,
   createProtocolConnection,
   ProtocolConnection,
+  ShutdownRequest,
+  ExitNotification,
 } from 'vscode-languageserver-protocol';
 import * as portscanner from 'portscanner';
 
@@ -25,7 +27,12 @@ export const getStdioConnection = (pathToServer: string) => {
   const connection = createProtocolConnection(
     new StreamMessageReader(cp.stdout),
     new StreamMessageWriter(cp.stdin),
-    null
+    {
+      log: console.log,
+      info: console.info,
+      error: console.error,
+      warn: console.warn,
+    }
   );
   return { child_process: cp, connection };
 };
@@ -49,7 +56,7 @@ export const testInitHandshake = (
 };
 
 export const testInitHandshakeForAllTransports = (pathToServer: string) =>
-  describe(pathToServer, () => {
+  describe('initialization handshake', () => {
     let cp: ChildProcess;
     afterEach(() => cp.kill());
     it('performs LSP initialization via stdio', (done) => {
@@ -120,3 +127,31 @@ export const testInitHandshakeForAllTransports = (pathToServer: string) =>
       );
     });
   });
+
+export const testShutdown = (pathToServer) => {
+  describe('shutdown', () => {
+    let cp: ChildProcess;
+    afterEach(() => cp && cp.kill());
+    it('exits with code 1 if an exit notification is received before a shutdown request', async (done) => {
+      const { child_process, connection } = getStdioConnection(pathToServer);
+      connection.listen();
+      cp = child_process;
+      cp.on('exit', (code, _signal) => {
+        expect(code).toBe(1);
+        done();
+      });
+      connection.sendNotification(ExitNotification.type);
+    });
+    it('shuts down on shutdown request', async (done) => {
+      const { child_process, connection } = getStdioConnection(pathToServer);
+      connection.listen();
+      cp = child_process;
+      cp.on('close', (code, _signal) => {
+        expect(code).toBe(0);
+        done();
+      });
+      await connection.sendRequest(ShutdownRequest.type);
+      connection.sendNotification(ExitNotification.type);
+    });
+  });
+};
