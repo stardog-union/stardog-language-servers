@@ -1,7 +1,10 @@
 const path = require('path');
+const os = require('os');
+const { isCI } = require('ci-info');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
+const MAX_CI_CPUS = Math.min(8, os.cpus().length - 2); // more than 8 CPUs on CI tends to make the build use too much memory and OOM
 
 const cliConfig = {
   mode: 'production',
@@ -47,6 +50,7 @@ const cliConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
+      workers: isCI() ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
@@ -96,6 +100,7 @@ const workerConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
+      workers: isCI() ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',

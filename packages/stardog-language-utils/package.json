@@ -48,6 +48,7 @@
   "devDependencies": {
     "@types/node": "^10.12.15",
     "@types/yargs": "^12.0.1",
+    "ci-info": "^2.0.0",
     "fork-ts-checker-webpack-plugin": "^0.5.2",
     "jest": "^23.6.0",
     "lint-staged": "^8.1.0",
