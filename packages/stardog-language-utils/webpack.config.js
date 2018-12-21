@@ -4,7 +4,7 @@ const { isCI } = require('ci-info');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
-const MAX_CI_CPUS = Math.min(8, os.cpus().length - 2); // more than 8 CPUs on CI tends to make the build use too much memory and OOM
+const MAX_CI_CPUS = Math.min(4, os.cpus().length - 2); // CI memory limits make build OOM if too many CPUs are used
 
 const cliConfig = {
   mode: 'production',
