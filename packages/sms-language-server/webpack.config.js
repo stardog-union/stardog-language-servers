@@ -50,7 +50,7 @@ const cliConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
-      workers: isCI() ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
@@ -100,7 +100,7 @@ const workerConfig = {
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
-      workers: isCI() ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI ? MAX_CI_CPUS : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
