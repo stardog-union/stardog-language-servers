@@ -26,7 +26,7 @@ language servers
 ## Try it Out
 
 You can try these language servers out in [Visual Studio Code](https://code.visualstudio.com/),
-using our [Visual Studio Code Extension](TODO).
+using our [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=stardog-union.stardog-rdf-grammars#review-details).
 
 ## Integrating with Other Editors
 
