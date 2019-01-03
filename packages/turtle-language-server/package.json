@@ -1,6 +1,6 @@
 {
   "name": "turtle-language-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "license": "Apache-2.0",

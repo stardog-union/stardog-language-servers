@@ -1,6 +1,6 @@
 {
   "name": "stardog-language-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types",
