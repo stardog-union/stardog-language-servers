@@ -45,8 +45,8 @@ export abstract class AbstractLanguageServer<
     // Setting this StarHandler is intended to overwrite the handler set
     // in the constructor, which always responded with a "Server not initialized"
     // error. Here, we're initialized, so we replace with an "Unhandled method"
-    this.connection.onRequest(this.handleUnhandledRequest);
-    this.connection.onHover(this.handleHover);
+    this.connection.onRequest(this.handleUnhandledRequest.bind(this));
+    this.connection.onHover(this.handleHover.bind(this));
     return this.onInitialization(params);
   }
 
