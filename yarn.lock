@@ -1530,7 +1530,7 @@ byte-size@^4.0.3:
 
 cacache@^10.0.4:
   version "10.0.4"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/cacache/-/cacache-10.0.4.tgz#6452367999eff9d4188aefd9a14e9d7c6a263460"
+  resolved "https://registry.npmjs.org/cacache/-/cacache-10.0.4.tgz#6452367999eff9d4188aefd9a14e9d7c6a263460"
   integrity sha1-ZFI2eZnv+dQYiu/ZoU6dfGomNGA=
   dependencies:
     bluebird "^3.5.1"
@@ -2009,7 +2009,7 @@ copy-descriptor@^0.1.0:
 
 copy-webpack-plugin@^4.6.0:
   version "4.6.0"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/copy-webpack-plugin/-/copy-webpack-plugin-4.6.0.tgz#e7f40dd8a68477d405dd1b7a854aae324b158bae"
+  resolved "https://registry.npmjs.org/copy-webpack-plugin/-/copy-webpack-plugin-4.6.0.tgz#e7f40dd8a68477d405dd1b7a854aae324b158bae"
   integrity sha1-5/QN2KaEd9QF3Rt6hUquMksVi64=
   dependencies:
     cacache "^10.0.4"
@@ -2835,7 +2835,7 @@ fill-range@^4.0.0:
 
 find-cache-dir@^1.0.0:
   version "1.0.0"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/find-cache-dir/-/find-cache-dir-1.0.0.tgz#9288e3e9e3cc3748717d39eade17cf71fc30ee6f"
+  resolved "https://registry.npmjs.org/find-cache-dir/-/find-cache-dir-1.0.0.tgz#9288e3e9e3cc3748717d39eade17cf71fc30ee6f"
   integrity sha1-kojj6ePMN0hxfTnq3hfPcfww7m8=
   dependencies:
     commondir "^1.0.1"
@@ -3211,7 +3211,7 @@ globby@^6.1.0:
 
 globby@^7.1.1:
   version "7.1.1"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/globby/-/globby-7.1.1.tgz#fb2ccff9401f8600945dfada97440cca972b8680"
+  resolved "https://registry.npmjs.org/globby/-/globby-7.1.1.tgz#fb2ccff9401f8600945dfada97440cca972b8680"
   integrity sha1-+yzP+UAfhgCUXfral0QMypcrhoA=
   dependencies:
     array-union "^1.0.1"
@@ -5146,7 +5146,7 @@ minizlib@^1.1.1:
 
 mississippi@^2.0.0:
   version "2.0.0"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/mississippi/-/mississippi-2.0.0.tgz#3442a508fafc28500486feea99409676e4ee5a6f"
+  resolved "https://registry.npmjs.org/mississippi/-/mississippi-2.0.0.tgz#3442a508fafc28500486feea99409676e4ee5a6f"
   integrity sha1-NEKlCPr8KFAEhv7qmUCWduTuWm8=
   dependencies:
     concat-stream "^1.5.0"
@@ -6868,7 +6868,7 @@ sshpk@^1.7.0:
 
 ssri@^5.2.4:
   version "5.3.0"
-  resolved "https://stardog.jfrog.io/stardog/api/npm/stardog-npm-virtual/ssri/-/ssri-5.3.0.tgz#ba3872c9c6d33a0704a7d71ff045e5ec48999d06"
+  resolved "https://registry.npmjs.org/ssri/-/ssri-5.3.0.tgz#ba3872c9c6d33a0704a7d71ff045e5ec48999d06"
   integrity sha1-ujhyycbTOgcEp9cf8EXl7EiZnQY=
   dependencies:
     safe-buffer "^5.1.1"
