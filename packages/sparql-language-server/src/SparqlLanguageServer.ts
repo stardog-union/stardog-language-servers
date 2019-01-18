@@ -1,29 +1,17 @@
 import {
-  TextDocuments,
   InitializeResult,
   TextDocumentPositionParams,
-  Hover,
   TextDocumentChangeEvent,
-  Diagnostic,
-  Range,
-  DiagnosticSeverity,
-  IConnection,
   CompletionItem,
   CompletionItemKind,
   TextEdit,
   InitializeParams,
-  ResponseError,
-  ErrorCodes,
-  StarRequestHandler,
+  IConnection,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
   W3SpecSparqlParser,
-  traverse,
-  isCstNode,
   sparqlKeywords,
-  IToken,
-  CstNode,
 } from 'millan';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
@@ -38,51 +26,29 @@ import {
   namespaceArrayToObj,
   LSPExtensionMethod,
   SparqlCompletionData,
+  AbstractLanguageServer,
 } from 'stardog-language-utils';
 import * as uniq from 'lodash.uniq';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 
 @autoBindMethods
-export class SparqlLanguageServer {
-  protected readonly documents = new TextDocuments();
-  private parser: StardogSparqlParser | W3SpecSparqlParser;
-  private latestTokens: IToken[];
-  private latestCst: CstNode;
-
+export class SparqlLanguageServer extends AbstractLanguageServer<
+  StardogSparqlParser | W3SpecSparqlParser
+> {
+  protected parser: StardogSparqlParser | W3SpecSparqlParser;
   private namespaceMap = {};
   private relationshipCompletionItems = [];
   private typeCompletionItems = [];
 
-  constructor(protected readonly connection: IConnection) {
-    this.documents.listen(this.connection);
-    this.documents.onDidChangeContent(this.handleContentChange);
-    this.connection.onRequest(this.handleUninitializedRequest);
-    this.connection.onInitialize(this.handleInitialization);
+  constructor(connection: IConnection) {
+    // Unlike other servers, the Sparql server instantiates a different parser
+    // depending on initialization params
+    super(connection, null);
   }
 
-  start() {
-    this.connection.listen();
-  }
-
-  handleUninitializedRequest: StarRequestHandler = () =>
-    new ResponseError(
-      ErrorCodes.ServerNotInitialized,
-      'Expecting "initialize" request from client.'
-    );
-  handleUnhandledRequest: StarRequestHandler = (method) =>
-    new ResponseError(
-      ErrorCodes.MethodNotFound,
-      `Request: "${method}" is not handled by the server.`
-    );
-
-  handleInitialization(params: InitializeParams): InitializeResult {
-    // Setting this StarHandler is intended to overwrite the handler set
-    // in the constructor, which always responded with a "Server not initialized"
-    // error. Here, we're initialized, so we replace with an "Unhandled method"
-    this.connection.onRequest(this.handleUnhandledRequest);
+  onInitialization(params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
-    this.connection.onHover(this.handleHover);
     this.connection.onNotification(
       LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
       this.handleUpdateCompletionData
@@ -176,83 +142,16 @@ export class SparqlLanguageServer {
     return fullList;
   }
 
-  handleHover(params: TextDocumentPositionParams): Hover {
-    const document = this.documents.get(params.textDocument.uri);
-    const content = document.getText();
-    const cst = this.latestCst;
-
-    const currentRuleTokens: IToken[] = [];
-    let cursorTkn: IToken;
-    let currentRule: string;
-
-    const tokenCollector = (ctx, next) => {
-      if (isCstNode(ctx.node)) {
-        return next();
-      }
-      currentRuleTokens.push(ctx.node);
-    };
-
-    const findCurrentRule = (ctx, next) => {
-      const { node, parentCtx } = ctx;
-      if (isCstNode(node)) {
-        return next();
-      }
-      // must be a token
-      if (
-        document.offsetAt(params.position) >= node.startOffset &&
-        document.offsetAt(params.position) <= node.endOffset
-      ) {
-        // found token that user's cursor is hovering over
-        cursorTkn = node;
-        currentRule = parentCtx.node.name;
-
-        traverse(parentCtx.node, tokenCollector);
-      }
-    };
-
-    traverse(cst, findCurrentRule);
-
-    // get first and last tokens' positions
-    const currentRuleRange = currentRuleTokens.reduce(
-      (memo, token) => {
-        if (token.endOffset > memo.endOffset) {
-          memo.endOffset = token.endOffset;
-        }
-        if (token.startOffset < memo.startOffset) {
-          memo.startOffset = token.startOffset;
-        }
-        return memo;
-      },
-      {
-        startOffset: content.length,
-        endOffset: 0,
-      }
-    );
-
-    // const currentRuleText = content.slice(
-    //   currentRuleRange.startOffset,
-    //   currentRuleRange.endOffset + 1
-    // );
-
-    if (!cursorTkn) {
-      return {
-        contents: [],
-      };
-    }
-    return {
-      contents: `\`\`\`
-${currentRule}
-\`\`\``,
-      range: {
-        start: document.positionAt(currentRuleRange.startOffset),
-        end: document.positionAt(currentRuleRange.endOffset + 1),
-      },
-    };
-  }
-
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
-    const document = this.documents.get(params.textDocument.uri);
-    const tokens = this.latestTokens;
+    const { uri } = params.textDocument;
+    const document = this.documents.get(uri);
+    let { tokens } = this.parseStateManager.getParseStateForUri(uri);
+
+    if (!tokens) {
+      const { tokens: newTokens, cst } = this.parseDocument(document);
+      tokens = newTokens;
+      this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
+    }
 
     const tokenIdxAtCursor = tokens.findIndex((tkn) => {
       if (
@@ -405,69 +304,31 @@ ${currentRule}
     return finalCompletions;
   }
 
-  handleContentChange(change: TextDocumentChangeEvent) {
-    const content = change.document.getText();
-
-    const { cst, errors: parseErrors } = this.parser.parse(content);
-    this.latestCst = cst;
-    this.latestTokens = this.parser.input;
+  onContentChange(
+    { document }: TextDocumentChangeEvent,
+    parseResult: ReturnType<
+      AbstractLanguageServer<
+        StardogSparqlParser | W3SpecSparqlParser
+      >['parseDocument']
+    >
+  ) {
+    const { uri } = document;
+    const content = document.getText();
 
     if (!content.length) {
       this.connection.sendDiagnostics({
-        uri: change.document.uri,
+        uri,
         diagnostics: [],
       });
       return;
     }
 
-    // The purpose of this block is to catch any "unknown" tokens. Since
-    // any unknown token could be a stardog or custom function, we can't
-    // produce diagnostics like this anymore.
-
-    // const lexDiagnostics = this.latestTokens
-    //   .filter((res) => res.tokenType.tokenName === 'Unknown')
-    //   .map((unknownToken): Diagnostic => ({
-    //     severity: DiagnosticSeverity.Error,
-    //     message: `Unknown token`,
-    //     range: {
-    //       start: change.document.positionAt(unknownToken.startOffset),
-    //       // chevrotains' token sends our inclusive
-    //       end: change.document.positionAt(unknownToken.endOffset + 1),
-    //     },
-    //   }));
-
-    const parseDiagnostics = parseErrors.map(
-      (error): Diagnostic => {
-        const { message, context, token } = error;
-        const { ruleStack } = context;
-        const range =
-          token.tokenType.tokenName === 'EOF'
-            ? Range.create(
-                change.document.positionAt(content.length),
-                change.document.positionAt(content.length)
-              )
-            : Range.create(
-                change.document.positionAt(token.startOffset),
-                change.document.positionAt(token.endOffset + 1)
-              );
-
-        return {
-          message,
-          source: ruleStack.length ? ruleStack.pop() : null,
-          severity: DiagnosticSeverity.Error,
-          range,
-        };
-      }
-    );
-
-    const finalDiagnostics = [
-      // ...lexDiagnostics,
-      ...parseDiagnostics,
-    ];
+    const { errors } = parseResult;
+    const diagnostics = this.getParseDiagnostics(document, errors);
 
     this.connection.sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics: finalDiagnostics,
+      uri,
+      diagnostics,
     });
   }
 }
