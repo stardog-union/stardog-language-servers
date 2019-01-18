@@ -1,8 +1,9 @@
 {
   "name": "turtle-language-server",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
+  "types": "./dist/types/TurtleLanguageServer.d.ts",
   "license": "Apache-2.0",
   "keywords": [
     "turtle",
@@ -47,7 +48,7 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "millan": "^2.0.0",
-    "stardog-language-utils": "^1.0.0",
+    "stardog-language-utils": "^1.1.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {

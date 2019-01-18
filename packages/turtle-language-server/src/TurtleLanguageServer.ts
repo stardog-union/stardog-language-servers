@@ -1,26 +1,16 @@
 import * as lsp from 'vscode-languageserver';
-import { autoBindMethods } from 'class-autobind-decorator';
-import { errorMessageProvider } from 'stardog-language-utils';
-import { TurtleParser, isCstNode, traverse, IToken, CstNode } from 'millan';
+import {
+  AbstractLanguageServer,
+  errorMessageProvider,
+} from 'stardog-language-utils';
+import { TurtleParser } from 'millan';
 
-@autoBindMethods
-export class TurtleLanguageServer {
-  protected readonly documents = new lsp.TextDocuments();
-  private latestCst: CstNode;
-  private parser = new TurtleParser({ errorMessageProvider });
-
-  constructor(protected readonly connection: lsp.IConnection) {
-    this.documents.listen(this.connection);
-    this.documents.onDidChangeContent(this.handleContentChange);
-    this.connection.onInitialize(this.handleInitialization);
-    this.connection.onHover(this.handleHover);
+export class TurtleLanguageServer extends AbstractLanguageServer<TurtleParser> {
+  constructor(connection: lsp.IConnection) {
+    super(connection, new TurtleParser({ errorMessageProvider }));
   }
 
-  start() {
-    this.connection.listen();
-  }
-
-  handleInitialization(_params): lsp.InitializeResult {
+  onInitialization(_params: lsp.InitializeParams): lsp.InitializeResult {
     return {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
@@ -30,133 +20,30 @@ export class TurtleLanguageServer {
     };
   }
 
-  handleContentChange(change: lsp.TextDocumentChangeEvent): void {
-    const content = change.document.getText();
-
-    const { errors: parseErrors, cst } = this.parser.parse(content);
-    this.latestCst = cst;
-    const latestTokens = this.parser.input;
+  onContentChange(
+    { document }: lsp.TextDocumentChangeEvent,
+    parseResults: ReturnType<
+      AbstractLanguageServer<TurtleParser>['parseDocument']
+    >
+  ) {
+    const { uri } = document;
+    const content = document.getText();
 
     if (!content.length) {
       this.connection.sendDiagnostics({
-        uri: change.document.uri,
+        uri,
         diagnostics: [],
       });
       return;
     }
 
-    const lexDiagnostics = latestTokens
-      .filter((res) => res.tokenType.tokenName === 'Unknown')
-      .map(
-        (unknownToken): lsp.Diagnostic => ({
-          severity: lsp.DiagnosticSeverity.Error,
-          message: `Unknown token`,
-          range: {
-            start: change.document.positionAt(unknownToken.startOffset),
-            // chevrotains' token sends our inclusive
-            end: change.document.positionAt(unknownToken.endOffset + 1),
-          },
-        })
-      );
-
-    const parseDiagnostics = parseErrors.map(
-      (error): lsp.Diagnostic => {
-        const { message, context, token } = error;
-        const { ruleStack } = context;
-        const range =
-          token.tokenType.tokenName === 'EOF'
-            ? lsp.Range.create(
-                change.document.positionAt(content.length),
-                change.document.positionAt(content.length)
-              )
-            : lsp.Range.create(
-                change.document.positionAt(token.startOffset),
-                change.document.positionAt(token.endOffset + 1)
-              );
-
-        return {
-          message,
-          source: ruleStack.length ? ruleStack.pop() : null,
-          severity: lsp.DiagnosticSeverity.Error,
-          range,
-        };
-      }
-    );
-
-    const finalDiagnostics = [...lexDiagnostics, ...parseDiagnostics];
+    const { tokens, errors } = parseResults;
+    const lexDiagnostics = this.getLexDiagnostics(document, tokens);
+    const parseDiagnostics = this.getParseDiagnostics(document, errors);
 
     return this.connection.sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics: finalDiagnostics,
+      uri,
+      diagnostics: [...lexDiagnostics, ...parseDiagnostics],
     });
-  }
-
-  handleHover(params: lsp.TextDocumentPositionParams): lsp.Hover {
-    const document = this.documents.get(params.textDocument.uri);
-    const content = document.getText();
-    const cst = this.latestCst;
-
-    const currentRuleTokens: IToken[] = [];
-    let cursorTkn: IToken;
-    let currentRule: string;
-
-    const tokenCollector = (ctx, next) => {
-      if (isCstNode(ctx.node)) {
-        return next();
-      }
-      currentRuleTokens.push(ctx.node);
-    };
-
-    const findCurrentRule = (ctx, next) => {
-      const { node, parentCtx } = ctx;
-      if (isCstNode(node)) {
-        return next();
-      }
-      // must be a token
-      if (
-        document.offsetAt(params.position) >= node.startOffset &&
-        document.offsetAt(params.position) <= node.endOffset
-      ) {
-        // found token that user's cursor is hovering over
-        cursorTkn = node;
-        currentRule = parentCtx.node.name;
-
-        traverse(parentCtx.node, tokenCollector);
-      }
-    };
-
-    traverse(cst, findCurrentRule);
-
-    // get first and last tokens' positions
-    const currentRuleRange = currentRuleTokens.reduce(
-      (memo, token) => {
-        if (token.endOffset > memo.endOffset) {
-          memo.endOffset = token.endOffset;
-        }
-        if (token.startOffset < memo.startOffset) {
-          memo.startOffset = token.startOffset;
-        }
-        return memo;
-      },
-      {
-        startOffset: content.length,
-        endOffset: 0,
-      }
-    );
-
-    if (!cursorTkn) {
-      return {
-        contents: [],
-      };
-    }
-    return {
-      contents: `\`\`\`
-${currentRule}
-\`\`\``,
-      range: {
-        start: document.positionAt(currentRuleRange.startOffset),
-        end: document.positionAt(currentRuleRange.endOffset + 1),
-      },
-    };
   }
 }

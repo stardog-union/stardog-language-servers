@@ -1,8 +1,9 @@
 {
   "name": "sparql-language-server",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
+  "types": "./dist/types/SparqlLanguageServer.ts",
   "license": "Apache-2.0",
   "keywords": [
     "sparql",
@@ -48,7 +49,7 @@
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniq": "^4.5.0",
     "millan": "^2.0.0",
-    "stardog-language-utils": "^1.0.0",
+    "stardog-language-utils": "^1.1.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
