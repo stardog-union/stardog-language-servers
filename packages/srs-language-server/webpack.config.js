@@ -1,8 +1,20 @@
 const path = require('path');
 const { isCI } = require('ci-info');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
+
+// Don't minify the parser names; this breaks chevrotain. See here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED
+const reserved = [
+  'BaseSparqlParser',
+  'W3SpecSparqlParser',
+  'StardogSparqlParser',
+  'SrsParser',
+  'SmsParser',
+  'TurtleParser',
+  'Parser',
+];
 
 const cliConfig = {
   mode: 'production',
@@ -14,7 +26,7 @@ const cliConfig = {
     library: 'srs-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
-    globalObject: 'typeof self !== \'undefined\' ? self : this', // https://github.com/webpack/webpack/issues/6525
+    globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525
   },
   module: {
     rules: [
@@ -37,7 +49,7 @@ const cliConfig = {
           },
         ],
         exclude: [/node_modules/],
-      }
+      },
     ],
   },
   resolve: {
@@ -49,10 +61,25 @@ const cliConfig = {
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
-      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI
+        ? ForkTsCheckerWebpackPlugin.ONE_CPU
+        : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true,
+        terserOptions: {
+          // Chevrotain does not cooperate with webpack mangling (see here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED).
+          mangle: {
+            reserved,
+          },
+        },
+      }),
+    ],
+  },
 };
 
 const workerConfig = {
@@ -65,7 +92,7 @@ const workerConfig = {
     library: 'srs-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
-    globalObject: 'typeof self !== \'undefined\' ? self : this', // https://github.com/webpack/webpack/issues/6525
+    globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525
   },
   module: {
     rules: [
@@ -88,7 +115,7 @@ const workerConfig = {
           },
         ],
         exclude: [/node_modules/],
-      }
+      },
     ],
   },
   resolve: {
@@ -100,7 +127,9 @@ const workerConfig = {
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
-      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI
+        ? ForkTsCheckerWebpackPlugin.ONE_CPU
+        : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
@@ -109,7 +138,20 @@ const workerConfig = {
     net: 'empty',
     fs: 'empty',
     net: 'empty',
-  }
+  },
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true,
+        terserOptions: {
+          // Chevrotain does not cooperate with webpack mangling (see here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED).
+          mangle: {
+            reserved,
+          },
+        },
+      }),
+    ],
+  },
 };
 
 module.exports = [cliConfig, workerConfig];
