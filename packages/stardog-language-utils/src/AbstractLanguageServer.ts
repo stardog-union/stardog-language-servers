@@ -74,6 +74,7 @@ export abstract class AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst });
     }
 
+    const offsetAtPosition = document.offsetAt(params.position);
     const currentRuleTokens: IToken[] = [];
     let cursorTkn: IToken;
     let currentRule: string;
@@ -92,8 +93,8 @@ export abstract class AbstractLanguageServer<
       }
       // must be a token
       if (
-        document.offsetAt(params.position) >= node.startOffset &&
-        document.offsetAt(params.position) <= node.endOffset
+        offsetAtPosition >= node.startOffset &&
+        offsetAtPosition <= node.endOffset
       ) {
         // found token that user's cursor is hovering over
         cursorTkn = node;
