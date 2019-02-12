@@ -1,11 +1,4 @@
-import escape from 'escape-string-regexp';
-import { matchers } from 'millan';
-
-// The PN_LOCAL_ESC regexp imported from millan includes the escape backslash,
-// i.e. /\\[special chars here...]/
-// In these utils we want to search for unescaped special chars and escape them
-// and so the regexp is modified to remove the backslash, i.e. /[special chars here...]/
-const LOCAL_ESC_CHARS = new RegExp(matchers.PN_LOCAL_ESC.source.slice(2), 'g');
+import * as escape from 'escape-string-regexp';
 
 const abbreviate = (
   prefix: string,
@@ -18,12 +11,11 @@ const abbreviate = (
   );
   if (result && result[3]) {
     const localName = result[3];
-    const escapedLocalName = localName.replace(LOCAL_ESC_CHARS, '\\$&');
     // If newIri still equals oldIri, we know that this is the first match.
     // Otherwise, if the new result is shorter than the previous result, we
     // prefer the new because it is necessarily more specific.
-    if (newIri === oldIri || escapedLocalName.length < newIri.length) {
-      return `${alias}:${escapedLocalName}`;
+    if (newIri === oldIri || localName.length < newIri.length) {
+      return `${alias}:${localName}`;
     }
   }
   return newIri;
