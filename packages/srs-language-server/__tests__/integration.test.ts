@@ -43,7 +43,7 @@ describe('srs language server', () => {
       workspaceFolders: null,
     });
     await connection.sendNotification(InitializedNotification.type);
-    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
+    return connection.sendNotification(DidOpenTextDocumentNotification.type, {
       textDocument,
     });
   });
@@ -77,7 +77,7 @@ describe('srs language server', () => {
       textDocument,
       position: Position.create(0, 1),
     });
-    expect(res.contents).toBeTruthy();
+    expect(res.contents).toBe('```\nIfClause\n```');
     done();
   });
 });
