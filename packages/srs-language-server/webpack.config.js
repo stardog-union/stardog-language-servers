@@ -1,5 +1,6 @@
 const path = require('path');
 const { isCI } = require('ci-info');
+const { BannerPlugin } = require('webpack');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
@@ -57,6 +58,9 @@ const cliConfig = {
     extensions: ['.ts', '.js'],
   },
   plugins: [
+    new BannerPlugin({
+      banner: '#!/usr/bin/env node',
+    }),
     new ForkTsCheckerWebpackPlugin({
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,

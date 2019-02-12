@@ -4,6 +4,7 @@
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SmsLanguageServer.d.ts",
+  "bin": "./dist/cli.js",
   "license": "Apache-2.0",
   "keywords": [
     "sms",
