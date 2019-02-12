@@ -4805,6 +4805,11 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
+lodash.uniqby@^4.7.0:
+  version "4.7.0"
+  resolved "https://registry.npmjs.org/lodash.uniqby/-/lodash.uniqby-4.7.0.tgz#d99c07a669e9e6d24e1362dfe266c67616af1302"
+  integrity sha1-2ZwHpmnp5tJOE2Lf4mbGdhavEwI=
+
 lodash@^4.13.1, lodash@^4.17.10, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.2.1:
   version "4.17.11"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
@@ -5057,12 +5062,13 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
 
-millan@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/millan/-/millan-2.0.0.tgz#71829a50095a42cc94e8f7f7cc4f5ad8367b91b3"
-  integrity sha1-cYKaUAlaQsyU6Pf3zE9a2DZ7kbM=
+millan@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.1.0.tgz#e1d510001376036b5e3b4e7ef43eaee2551e0730"
+  integrity sha512-3A9Mu1EWPMS3ROcxaD6VfGYYNXPzUKh7UwlJCucrtQooWEvv/81DXQPMpbJaA/UgmfKUSJ/RM56PUgQyKJDUmQ==
   dependencies:
     chevrotain "3.0.1"
+    lodash.uniqby "^4.7.0"
 
 miller-rabin@^4.0.0:
   version "4.0.1"
@@ -7144,6 +7150,20 @@ terser-webpack-plugin@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/terser-webpack-plugin/-/terser-webpack-plugin-1.1.0.tgz#cf7c25a1eee25bf121f4a587bb9e004e3f80e528"
   integrity sha1-z3wloe7iW/Eh9KWHu54ATj+A5Sg=
+  dependencies:
+    cacache "^11.0.2"
+    find-cache-dir "^2.0.0"
+    schema-utils "^1.0.0"
+    serialize-javascript "^1.4.0"
+    source-map "^0.6.1"
+    terser "^3.8.1"
+    webpack-sources "^1.1.0"
+    worker-farm "^1.5.2"
+
+terser-webpack-plugin@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.npmjs.org/terser-webpack-plugin/-/terser-webpack-plugin-1.2.1.tgz#7545da9ae5f4f9ae6a0ac961eb46f5e7c845cc26"
+  integrity sha512-GGSt+gbT0oKcMDmPx4SRSfJPE1XaN3kQRWG4ghxKQw9cn5G9x6aCKSsgYdvyM0na9NJ4Drv0RG6jbBByZ5CMjw==
   dependencies:
     cacache "^11.0.2"
     find-cache-dir "^2.0.0"

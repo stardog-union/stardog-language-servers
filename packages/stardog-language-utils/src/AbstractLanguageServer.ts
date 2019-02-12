@@ -74,6 +74,7 @@ export abstract class AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst });
     }
 
+    const offsetAtPosition = document.offsetAt(params.position);
     const currentRuleTokens: IToken[] = [];
     let cursorTkn: IToken;
     let currentRule: string;
@@ -92,8 +93,9 @@ export abstract class AbstractLanguageServer<
       }
       // must be a token
       if (
-        document.offsetAt(params.position) >= node.startOffset &&
-        document.offsetAt(params.position) <= node.endOffset
+        parentCtx.node &&
+        offsetAtPosition >= node.startOffset &&
+        offsetAtPosition <= node.endOffset
       ) {
         // found token that user's cursor is hovering over
         cursorTkn = node;
@@ -182,23 +184,36 @@ ${currentRule}
       (error): lsp.Diagnostic => {
         const { message, context, token } = error;
         const { ruleStack } = context;
-        const range =
-          token.tokenType.tokenName === 'EOF'
-            ? lsp.Range.create(
-                document.positionAt(content.length),
-                document.positionAt(content.length)
-              )
-            : lsp.Range.create(
-                document.positionAt(token.startOffset),
-                document.positionAt(token.endOffset + 1)
-              );
-
-        return {
+        const constructedDiagnostic: Partial<lsp.Diagnostic> = {
           message,
-          source: ruleStack.length ? ruleStack.pop() : null,
+          source: ruleStack.length ? ruleStack[ruleStack.length - 1] : null,
           severity: lsp.DiagnosticSeverity.Error,
-          range,
         };
+
+        if (token.tokenType.tokenName !== 'EOF') {
+          constructedDiagnostic.range = lsp.Range.create(
+            document.positionAt(token.startOffset),
+            document.positionAt(token.endOffset + 1)
+          );
+        } else {
+          const { previousToken = {} } = error as any; // chevrotain doesn't have this typed fully, but it exists for early exit exceptions
+          let rangeStart;
+          let rangeEnd;
+
+          if (typeof previousToken.endOffset !== 'undefined') {
+            rangeStart = Math.min(previousToken.endOffset + 1, content.length);
+            rangeEnd = Math.min(previousToken.endOffset + 2, content.length);
+          } else {
+            rangeStart = rangeEnd = content.length;
+          }
+
+          constructedDiagnostic.range = lsp.Range.create(
+            document.positionAt(rangeStart),
+            document.positionAt(rangeEnd)
+          );
+        }
+
+        return constructedDiagnostic as lsp.Diagnostic;
       }
     );
   }
