@@ -1,6 +1,6 @@
 {
   "name": "srs-language-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SrsLanguageServer.d.ts",
@@ -51,7 +51,7 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "millan": "^2.1.1",
-    "stardog-language-utils": "^1.1.4",
+    "stardog-language-utils": "^1.1.5",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
