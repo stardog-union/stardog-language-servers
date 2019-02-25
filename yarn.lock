@@ -5070,6 +5070,14 @@ millan@^2.1.0:
     chevrotain "3.0.1"
     lodash.uniqby "^4.7.0"
 
+millan@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.1.1.tgz#797e3c8e3b2a54a60ce8ccd40068e226b647cb73"
+  integrity sha512-BGA9WRVnEVBTNSLGGQecM7cFsaM5BfESh7gn5hnpMHQuB2V+T/ZsgEynNkMNEHeMsYaSWT++jiNWqi7XtBiEJg==
+  dependencies:
+    chevrotain "3.0.1"
+    lodash.uniqby "^4.7.0"
+
 miller-rabin@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/miller-rabin/-/miller-rabin-4.0.1.tgz#f080351c865b0dc562a8462966daa53543c78a4d"
