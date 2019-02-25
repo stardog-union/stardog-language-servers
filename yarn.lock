@@ -5062,14 +5062,6 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
 
-millan@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/millan/-/millan-2.1.0.tgz#e1d510001376036b5e3b4e7ef43eaee2551e0730"
-  integrity sha512-3A9Mu1EWPMS3ROcxaD6VfGYYNXPzUKh7UwlJCucrtQooWEvv/81DXQPMpbJaA/UgmfKUSJ/RM56PUgQyKJDUmQ==
-  dependencies:
-    chevrotain "3.0.1"
-    lodash.uniqby "^4.7.0"
-
 millan@^2.1.1:
   version "2.1.1"
   resolved "https://registry.npmjs.org/millan/-/millan-2.1.1.tgz#797e3c8e3b2a54a60ce8ccd40068e226b647cb73"
