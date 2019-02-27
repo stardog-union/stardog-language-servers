@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "escape-string-regexp": "^1.0.5",
-    "lodash.uniq": "^4.5.0",
+    "lodash.uniqby": "^4.7.0",
     "millan": "^2.1.1",
     "vscode-languageserver": "^5.2.1"
   },
