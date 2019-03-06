@@ -7,11 +7,14 @@ import {
   TextEdit,
   InitializeParams,
   IConnection,
+  Range,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
   W3SpecSparqlParser,
   sparqlKeywords,
+  sparqlTokens,
+  TokenType,
 } from 'millan';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
@@ -28,9 +31,17 @@ import {
   SparqlCompletionData,
   AbstractLanguageServer,
 } from 'stardog-language-utils';
-import * as uniq from 'lodash.uniq';
+import * as uniqBy from 'lodash.uniqby';
+import { ISyntacticContentAssistPath, IToken } from 'chevrotain';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;
+
+interface CompletionCandidate extends ISyntacticContentAssistPath {
+  replacementRange?: {
+    start: number;
+    end: number;
+  };
+}
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -142,6 +153,44 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     return fullList;
   }
 
+  addLongerAltsToCandidates(
+    candidates: CompletionCandidate[],
+    tokens: { beforeCursor: IToken; atCursor: IToken }
+  ) {
+    const { beforeCursor: tokenBeforeCursor, atCursor: tokenAtCursor } = tokens;
+    const combinedImage = `${tokenBeforeCursor.image}${tokenAtCursor.image}`;
+    sparqlTokens.sparqlTokenTypes.forEach((token: TokenType) => {
+      let isMatch = false;
+
+      // TODO: A fuzzy search would be better than a `startsWith` here, but
+      // this is good enough for now.
+      if (typeof token.PATTERN === 'string') {
+        isMatch = token.PATTERN.startsWith(combinedImage);
+      } else {
+        const { source, flags } = token.PATTERN;
+        isMatch =
+          source.startsWith(combinedImage) ||
+          (flags.includes('i') &&
+            source.toLowerCase().startsWith(combinedImage.toLowerCase()));
+      }
+
+      if (isMatch) {
+        candidates.push({
+          nextTokenType: token,
+          replacementRange: {
+            start: tokenBeforeCursor.startOffset,
+            end: tokenAtCursor.endOffset + 1,
+          },
+          // Unfortunately, we can't compute these later values here.
+          // Fortunately, we don't really need them for these purposes.
+          nextTokenOccurrence: 0,
+          occurrenceStack: [],
+          ruleStack: [],
+        });
+      }
+    });
+  }
+
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
@@ -175,24 +224,56 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       ...tokensUpToCursor,
       ...tokensAfterCursor,
     ];
-
     const { vars, prefixes, localNames, iris } = getUniqueIdentifiers(
       tokensBeforeAndAfterCursor
     );
-
-    const candidates = this.parser.computeContentAssist(
+    const candidates: CompletionCandidate[] = this.parser.computeContentAssist(
       'SparqlDoc',
       tokensUpToCursor
     );
 
-    const replaceTokenAtCursor = (replacement: string): TextEdit =>
-      TextEdit.replace(
-        {
+    if (
+      tokenBeforeCursor &&
+      tokenAtCursor.startOffset === tokenBeforeCursor.endOffset + 1
+    ) {
+      // Since there is no space between this token and the previous one,
+      // the character at the current position _could_ be a continuation of a
+      // longer image for some other token that just hasn't been fully written
+      // out yet -- e.g., when the user is typing 'strs', 'str' can match the
+      // `STR` token and 's' can match the 'Unknown' token, but it's _also_
+      // possible that the user was typing out `strstarts` and would like to
+      // receive `STRSTARTS` as a possible token match. The check here accounts
+      // for those possible longer matches. (NOTE: It doesn't seem possible to
+      // do this _just_ with chevrotain. chevrotain does provide a `longer_alt`
+      // property for tokens, but only ONE token can be provided as the alt. In
+      // the example just described, there are _many_ longer tokens that all
+      // start with 'str'.)
+      this.addLongerAltsToCandidates(candidates, {
+        beforeCursor: tokenBeforeCursor,
+        atCursor: tokenAtCursor,
+      });
+    }
+
+    const replaceTokenAtCursor = (
+      replacement: string,
+      replacementRange?: CompletionCandidate['replacementRange']
+    ): TextEdit => {
+      let textEditRange: Range;
+
+      if (replacementRange) {
+        textEditRange = {
+          start: document.positionAt(replacementRange.start),
+          end: document.positionAt(replacementRange.end),
+        };
+      } else {
+        textEditRange = {
           start: document.positionAt(tokenAtCursor.startOffset),
           end: document.positionAt(tokenAtCursor.endOffset + 1),
-        },
-        replacement
-      );
+        };
+      }
+
+      return TextEdit.replace(textEditRange, replacement);
+    };
 
     const variableCompletions: CompletionItem[] = vars.map((variable) => {
       return {
@@ -244,18 +325,27 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     }));
 
     // Unlike the previous completion types, sparqlKeywords only appear in dropdown if they're valid
-    const keywordCompletions = uniq(
-      candidates
-        .filter((item) => item.nextTokenType.tokenName in sparqlKeywords)
-        .filter((item) => item.nextTokenType.tokenName !== tokenAtCursor.image)
-        .map((keywordTkn) =>
-          regexPatternToString(keywordTkn.nextTokenType.PATTERN)
-        )
-    ).map((keyword) => ({
-      label: keyword,
-      kind: CompletionItemKind.Keyword,
-      textEdit: replaceTokenAtCursor(keyword),
-    }));
+    const keywordCompletions = uniqBy(
+      candidates.filter(
+        (item) =>
+          item.nextTokenType.tokenName !== tokenAtCursor.image &&
+          item.nextTokenType.tokenName in sparqlKeywords
+      ),
+      (completionCandidate: CompletionCandidate) =>
+        regexPatternToString(completionCandidate.nextTokenType.PATTERN)
+    ).map((completionCandidate: CompletionCandidate) => {
+      const keywordString = regexPatternToString(
+        completionCandidate.nextTokenType.PATTERN
+      );
+      return {
+        label: keywordString,
+        kind: CompletionItemKind.Keyword,
+        textEdit: replaceTokenAtCursor(
+          keywordString,
+          completionCandidate.replacementRange
+        ),
+      };
+    });
 
     const finalCompletions = [
       ...variableCompletions,
