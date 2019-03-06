@@ -49,7 +49,7 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "millan": "^2.1.1",
-    "stardog-language-utils": "^1.2.0",
+    "stardog-language-utils": "^1.2.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
