@@ -1680,6 +1680,13 @@ chevrotain@3.0.1:
   resolved "https://registry.yarnpkg.com/chevrotain/-/chevrotain-3.0.1.tgz#4259e8ea707273e88b8d70c9f1e3fe108d9c2446"
   integrity sha1-Qlno6nByc+iLjXDJ8eP+EI2cJEY=
 
+chevrotain@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.npmjs.org/chevrotain/-/chevrotain-4.3.2.tgz#abb0cdacddaa54c4fa47f0db8fd126001a69c116"
+  integrity sha512-Pdj+Ed9b+n6zEp08MKrw49cm/bQqjnRfyNs3fb/yLfq4x2MvcquYndNnfVZnIgkNeWObndLqshCUYZ2/7YTqHg==
+  dependencies:
+    regexp-to-ast "0.4.0"
+
 chokidar@^2.0.2, chokidar@^2.0.4:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-2.0.4.tgz#356ff4e2b0e8e43e322d18a372460bbcf3accd26"
@@ -6346,6 +6353,11 @@ regex-not@^1.0.0, regex-not@^1.0.2:
   dependencies:
     extend-shallow "^3.0.2"
     safe-regex "^1.1.0"
+
+regexp-to-ast@0.4.0:
+  version "0.4.0"
+  resolved "https://registry.npmjs.org/regexp-to-ast/-/regexp-to-ast-0.4.0.tgz#f3dbcb42726cd71902ba50193f63eab5325cd7cb"
+  integrity sha512-4qf/7IsIKfSNHQXSwial1IFmfM1Cc/whNBQqRwe0V2stPe7KmN1U0tWQiIx6JiirgSrisjE0eECdNf7Tav1Ntw==
 
 remove-trailing-separator@^1.0.1:
   version "1.1.0"

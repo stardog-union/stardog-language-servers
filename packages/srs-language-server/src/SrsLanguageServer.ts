@@ -25,7 +25,7 @@ export class SrsLanguageServer extends AbstractLanguageServer<SrsParser> {
   onContentChange(
     { document }: lsp.TextDocumentChangeEvent,
     parseResults: ReturnType<AbstractLanguageServer<SrsParser>['parseDocument']>
-  ): void {
+  ) {
     const { uri } = document;
     const content = document.getText();
     const { errors, tokens } = parseResults;

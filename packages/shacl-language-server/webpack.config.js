@@ -2,6 +2,7 @@ const path = require('path');
 const { isCI } = require('ci-info');
 const { BannerPlugin } = require('webpack');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
 
@@ -18,16 +19,16 @@ const reserved = [
 ];
 
 const cliConfig = {
-  mode: 'production',
+  mode: 'development',
   target: 'node',
   entry: path.join(SRC_DIR, 'cli.ts'),
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'cli.js',
-    library: 'sparql-language-server',
+    library: 'srs-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
-    globalObject: 'typeof self !== \'undefined\' ? self : this', // https://github.com/webpack/webpack/issues/6525
+    globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525
   },
   module: {
     rules: [
@@ -50,7 +51,7 @@ const cliConfig = {
           },
         ],
         exclude: [/node_modules/],
-      }
+      },
     ],
   },
   resolve: {
@@ -65,7 +66,9 @@ const cliConfig = {
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
-      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI
+        ? ForkTsCheckerWebpackPlugin.ONE_CPU
+        : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',
@@ -85,16 +88,16 @@ const cliConfig = {
 };
 
 const workerConfig = {
-  mode: 'production',
+  mode: 'development',
   target: 'webworker',
   entry: path.join(SRC_DIR, 'worker.ts'),
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'worker.js',
-    library: 'sparql-language-server',
+    library: 'srs-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
-    globalObject: 'typeof self !== \'undefined\' ? self : this', // https://github.com/webpack/webpack/issues/6525
+    globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525
   },
   module: {
     rules: [
@@ -117,7 +120,7 @@ const workerConfig = {
           },
         ],
         exclude: [/node_modules/],
-      }
+      },
     ],
   },
   resolve: {
@@ -129,7 +132,9 @@ const workerConfig = {
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
-      workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      workers: isCI
+        ? ForkTsCheckerWebpackPlugin.ONE_CPU
+        : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
     }),
   ],
   devtool: 'source-map',

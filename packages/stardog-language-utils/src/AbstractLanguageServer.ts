@@ -104,6 +104,7 @@ export abstract class AbstractLanguageServer<
         traverse(parentCtx.node, tokenCollector);
       }
     };
+    debugger;
 
     traverse(cst, findCurrentRule);
 
