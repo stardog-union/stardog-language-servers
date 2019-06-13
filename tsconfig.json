@@ -3,6 +3,7 @@
     "target": "es2015",
     "module": "es2015",
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "noImplicitAny": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

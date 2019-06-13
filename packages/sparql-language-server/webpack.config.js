@@ -2,6 +2,7 @@ const path = require('path');
 const { isCI } = require('ci-info');
 const { BannerPlugin } = require('webpack');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
 

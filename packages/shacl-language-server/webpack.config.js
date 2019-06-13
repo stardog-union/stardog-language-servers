@@ -19,7 +19,7 @@ const reserved = [
 ];
 
 const cliConfig = {
-  mode: 'development',
+  mode: 'production',
   target: 'node',
   entry: path.join(SRC_DIR, 'cli.ts'),
   output: {
@@ -88,7 +88,7 @@ const cliConfig = {
 };
 
 const workerConfig = {
-  mode: 'development',
+  mode: 'production',
   target: 'webworker',
   entry: path.join(SRC_DIR, 'worker.ts'),
   output: {

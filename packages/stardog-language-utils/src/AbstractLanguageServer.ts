@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver';
-import { Parser, IToken, IRecognitionException } from 'chevrotain';
-import { IStardogParser, isCstNode, traverse } from 'millan';
+import { Parser, IToken } from 'chevrotain';
+import { IStardogParser, isCstNode, traverse, ISemanticError } from 'millan';
 import { ParseStateManager, getParseStateManager } from './parseState';
 
 export abstract class AbstractLanguageServer<
@@ -57,9 +57,16 @@ export abstract class AbstractLanguageServer<
   private handleContentChange(params: lsp.TextDocumentChangeEvent) {
     const { document } = params;
     const { uri } = document;
-    const { cst, errors, tokens } = this.parseDocument(document);
+    const { cst, errors, tokens, otherParseData } = this.parseDocument(
+      document
+    );
     this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
-    return this.onContentChange(params, { cst, errors, tokens });
+    return this.onContentChange(params, {
+      cst,
+      errors,
+      tokens,
+      otherParseData,
+    });
   }
 
   handleHover(params: lsp.TextDocumentPositionParams): lsp.Hover {
@@ -104,7 +111,6 @@ export abstract class AbstractLanguageServer<
         traverse(parentCtx.node, tokenCollector);
       }
     };
-    debugger;
 
     traverse(cst, findCurrentRule);
 
@@ -149,13 +155,17 @@ ${currentRule}
 
   parseDocument(document: lsp.TextDocument) {
     const content = document.getText();
-    const { cst, errors } = this.parser.parse(content);
+    const { cst, errors, ...otherParseData } = this.parser.parse(content);
     const tokens = this.parser.input;
 
     return {
       cst,
       tokens,
       errors,
+      otherParseData: otherParseData as Omit<
+        ReturnType<T['parse']>,
+        'cst' | 'errors'
+      >,
     };
   }
 
@@ -175,19 +185,20 @@ ${currentRule}
       );
   }
 
-  getParseDiagnostics(
-    document: lsp.TextDocument,
-    errors: IRecognitionException[]
-  ) {
+  getParseDiagnostics(document: lsp.TextDocument, errors: ISemanticError[]) {
     const content = document.getText();
 
     return errors.map(
       (error): lsp.Diagnostic => {
         const { message, context, token } = error;
-        const { ruleStack } = context;
+        const ruleStack = context ? context.ruleStack : null;
+        const source =
+          ruleStack && ruleStack.length > 0
+            ? ruleStack[ruleStack.length - 1]
+            : null;
         const constructedDiagnostic: Partial<lsp.Diagnostic> = {
           message,
-          source: ruleStack.length ? ruleStack[ruleStack.length - 1] : null,
+          source,
           severity: lsp.DiagnosticSeverity.Error,
         };
 

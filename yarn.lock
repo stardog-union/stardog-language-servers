@@ -1675,15 +1675,10 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha1-kAlISfCTfy7twkJdDSip5fDLrZ4=
 
-chevrotain@3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/chevrotain/-/chevrotain-3.0.1.tgz#4259e8ea707273e88b8d70c9f1e3fe108d9c2446"
-  integrity sha1-Qlno6nByc+iLjXDJ8eP+EI2cJEY=
-
-chevrotain@^4.3.2:
-  version "4.3.2"
-  resolved "https://registry.npmjs.org/chevrotain/-/chevrotain-4.3.2.tgz#abb0cdacddaa54c4fa47f0db8fd126001a69c116"
-  integrity sha512-Pdj+Ed9b+n6zEp08MKrw49cm/bQqjnRfyNs3fb/yLfq4x2MvcquYndNnfVZnIgkNeWObndLqshCUYZ2/7YTqHg==
+chevrotain@^4.3.3:
+  version "4.3.3"
+  resolved "https://registry.npmjs.org/chevrotain/-/chevrotain-4.3.3.tgz#4b02541d9c414ecd0490db48664be7304d798b80"
+  integrity sha512-DsmAmF5urXboHHXqEr26Ot//S+l3yrOr7UwwgWQ+aNNlYpmnYK1flxplwJ5cIUgP9toKFsJ0VeLT1sq350A9Hg==
   dependencies:
     regexp-to-ast "0.4.0"
 
@@ -2536,6 +2531,11 @@ escape-string-regexp@^1.0.2, escape-string-regexp@^1.0.4, escape-string-regexp@^
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
   integrity sha1-G2HAViGQqN/2rjuyzwIAyhMLhtQ=
+
+escape-string-regexp@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-2.0.0.tgz#a30304e99daa32e23b2fd20f51babd07cffca344"
+  integrity sha512-UpzcLCXolUWcNu5HtVMHYdXJjArjsF9C0aNnquZYY4uW/Vu0miy5YoWvbV345HauVvcAUnpRuhMMcqTcGOY2+w==
 
 escodegen@^1.9.1:
   version "1.11.0"
@@ -4782,6 +4782,11 @@ lodash.debounce@^4.0.8:
   resolved "https://registry.yarnpkg.com/lodash.debounce/-/lodash.debounce-4.0.8.tgz#82d79bff30a67c4005ffd5e2515300ad9ca4d7af"
   integrity sha1-gteb/zCmfEAF/9XiUVMArZyk168=
 
+lodash.isequal@^4.5.0:
+  version "4.5.0"
+  resolved "https://registry.npmjs.org/lodash.isequal/-/lodash.isequal-4.5.0.tgz#415c4478f2bcc30120c22ce10ed3226f7d3e18e0"
+  integrity sha1-QVxEePK8wwEgwizhDtMib30+GOA=
+
 lodash.isfinite@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/lodash.isfinite/-/lodash.isfinite-3.3.2.tgz#fb89b65a9a80281833f0b7478b3a5104f898ebb3"
@@ -5064,13 +5069,14 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
 
-millan@^2.1.1:
-  version "2.1.1"
-  resolved "https://registry.npmjs.org/millan/-/millan-2.1.1.tgz#797e3c8e3b2a54a60ce8ccd40068e226b647cb73"
-  integrity sha512-BGA9WRVnEVBTNSLGGQecM7cFsaM5BfESh7gn5hnpMHQuB2V+T/ZsgEynNkMNEHeMsYaSWT++jiNWqi7XtBiEJg==
+millan@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.2.2.tgz#9f4b25705e00d7ecdcde1c46497d806a887598f2"
+  integrity sha512-BDLVckrzgznmNW1a07RLIqQF5hoKoCiUrL80GvK5Of5gK2Pn2ai0Ph2XwqQ/R3vyno88HEOSimZyFvkIWsiFSg==
   dependencies:
-    chevrotain "3.0.1"
-    lodash.uniqby "^4.7.0"
+    chevrotain "^4.3.3"
+    escape-string-regexp "^2.0.0"
+    lodash.isequal "^4.5.0"
 
 miller-rabin@^4.0.0:
   version "4.0.1"
@@ -7489,10 +7495,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@^3.2.2:
-  version "3.2.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.2.2.tgz#fe8101c46aa123f8353523ebdcf5730c2ae493e5"
-  integrity sha1-/oEBxGqhI/g1NSPr3PVzDCrkk+U=
+typescript@^3.5.1:
+  version "3.5.1"
+  resolved "https://registry.npmjs.org/typescript/-/typescript-3.5.1.tgz#ba72a6a600b2158139c5dd8850f700e231464202"
+  integrity sha512-64HkdiRv1yYZsSe4xC1WVgamNigVYjlssIoaH2HcZF0+ijsk5YK2g0G34w9wJkze8+5ow4STd22AynfO6ZYYLw==
 
 uglify-js@^3.1.4:
   version "3.4.9"

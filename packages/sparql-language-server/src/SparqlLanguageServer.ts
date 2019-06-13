@@ -30,8 +30,9 @@ import {
   LSPExtensionMethod,
   SparqlCompletionData,
   AbstractLanguageServer,
+  CompletionCandidate,
 } from 'stardog-language-utils';
-import * as uniqBy from 'lodash.uniqby';
+import uniqBy from 'lodash.uniqby';
 import { IToken } from 'chevrotain';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;

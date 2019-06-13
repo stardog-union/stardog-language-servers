@@ -58,16 +58,16 @@
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
     "tslint-loader": "^3.5.4",
-    "typescript": "^3.2.2",
+    "typescript": "^3.5.1",
     "webpack": "^4.27.1",
     "webpack-cli": "^3.1.2",
     "yargs": "^12.0.5"
   },
   "dependencies": {
-    "chevrotain": "^4.3.2",
+    "chevrotain": "^4.3.3",
     "escape-string-regexp": "^1.0.5",
     "lodash.uniqby": "^4.7.0",
-    "millan": "^2.1.1",
+    "millan": "^2.2.2",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
