@@ -95,9 +95,9 @@ describe('shacl language server', () => {
       textDocument: basicShaclDoc,
       position: Position.create(0, 40),
     });
-    expect(res).toHaveLength(18);
+    expect(res).toHaveLength(56);
     expect(res[0]).toMatchObject({
-      label: 'sh:nodeKind',
+      label: 'sh:class',
       kind: 20,
       textEdit: {
         range: {
@@ -110,7 +110,7 @@ describe('shacl language server', () => {
             character: 50,
           },
         },
-        newText: 'sh:nodeKind',
+        newText: 'sh:class',
       },
     });
     done();

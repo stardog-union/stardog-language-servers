@@ -6,10 +6,10 @@ import {
   AbstractLanguageServer,
   CompletionCandidate,
   regexPatternToString,
+  getTokenTypesForCategory,
 } from 'stardog-language-utils';
 import { ShaclParser, shaclTokens } from 'millan';
 import { Lexer, TokenType } from 'chevrotain';
-import { getTokenTypesForCategory } from 'stardog-language-utils/src/get-token-types-for-category';
 
 const SHACL_TOKEN_PREFIX = 'SHACL_';
 const PREFIXED_SUFFIX = '_prefixed';
@@ -150,59 +150,14 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
       return lsp.TextEdit.replace(textEditRange, replacement);
     };
 
-    const getCompletionItem = (
-      candidate: CompletionCandidate
-    ): lsp.CompletionItem | lsp.CompletionItem[] | void => {
-      const { tokenName, PATTERN } = candidate.nextTokenType;
-      const pattern = tokenName.startsWith(SHACL_TOKEN_PREFIX)
-        ? shaclTokenMap[`${tokenName}_prefixed`].PATTERN
-        : PATTERN;
-
-      if (pattern.toString() === Lexer.NA.toString()) {
-        // This is a SHACL category token, so collect completion items for all
-        // tokens _within_ that category (the category itself is not an actual
-        // token that can be used for completions).
-        const tokenTypesForCategory = getTokenTypesForCategory(
-          tokenName,
-          baseShaclTokens
-        );
-
-        // Recursively get completion candidates for each token in the category
-        return tokenTypesForCategory.map((subTokenType) =>
-          getCompletionItem({
-            ...candidate,
-            nextTokenType: subTokenType,
-          })
-        ) as lsp.CompletionItem[];
-      }
-
-      const isStringPattern = typeof pattern === 'string';
-
-      if (!isStringPattern && !(pattern instanceof RegExp)) {
-        // This token uses a custom pattern-matching function and we therefore
-        // cannot use its pattern for autocompletion.
-        return;
-      }
-
-      const completionString = isStringPattern
-        ? pattern
-        : regexPatternToString(pattern);
-
-      return {
-        label: completionString,
-        kind: lsp.CompletionItemKind.EnumMember,
-        textEdit: replaceTokenAtCursor(
-          completionString,
-          candidate.replacementRange
-        ),
-      };
-    };
-
-    // Completions are collected in this way for speed/complexity reasons
-    // (fewer map/filter/flatten operations needed).
+    // Completions are collected in this way (pushing, etc.) for
+    // speed/complexity reasons (fewer map/filter/flatten operations needed).
     const allCompletions = [];
     candidates.forEach((candidate) => {
-      const completionItem = getCompletionItem(candidate);
+      const completionItem = this.getCompletionItem(
+        candidate,
+        replaceTokenAtCursor
+      );
       if (!completionItem) {
         return;
       }
@@ -215,5 +170,57 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
     });
 
     return uniqBy(allCompletions, 'label');
+  }
+
+  private getCompletionItem(
+    candidate: CompletionCandidate,
+    tokenReplacer: (
+      replacement: string,
+      replacementRange?: CompletionCandidate['replacementRange']
+    ) => lsp.TextEdit
+  ): lsp.CompletionItem | lsp.CompletionItem[] | void {
+    const { tokenName, PATTERN } = candidate.nextTokenType;
+    const pattern = tokenName.startsWith(SHACL_TOKEN_PREFIX)
+      ? shaclTokenMap[`${tokenName}_prefixed`].PATTERN
+      : PATTERN;
+
+    if (pattern.toString() === Lexer.NA.toString()) {
+      // This is a SHACL category token, so collect completion items for all
+      // tokens _within_ that category (the category itself is not an actual
+      // token that can be used for completions).
+      const tokenTypesForCategory = getTokenTypesForCategory(
+        tokenName,
+        baseShaclTokens
+      );
+
+      // Recursively get completion candidates for each token in the category
+      return tokenTypesForCategory.map((subTokenType) =>
+        this.getCompletionItem(
+          {
+            ...candidate,
+            nextTokenType: subTokenType,
+          },
+          tokenReplacer
+        )
+      ) as lsp.CompletionItem[];
+    }
+
+    const isStringPattern = typeof pattern === 'string';
+
+    if (!isStringPattern && !(pattern instanceof RegExp)) {
+      // This token uses a custom pattern-matching function and we therefore
+      // cannot use its pattern for autocompletion.
+      return;
+    }
+
+    const completionString = isStringPattern
+      ? pattern
+      : regexPatternToString(pattern);
+
+    return {
+      label: completionString,
+      kind: lsp.CompletionItemKind.EnumMember,
+      textEdit: tokenReplacer(completionString, candidate.replacementRange),
+    };
   }
 }
