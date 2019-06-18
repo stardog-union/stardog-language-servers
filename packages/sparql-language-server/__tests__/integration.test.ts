@@ -70,7 +70,7 @@ describe('sparql language server', () => {
           range: {
             start: {
               line: 0,
-              character: 20,
+              character: 19,
             },
             end: {
               line: 0,

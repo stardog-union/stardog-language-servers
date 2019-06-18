@@ -30,18 +30,12 @@ import {
   LSPExtensionMethod,
   SparqlCompletionData,
   AbstractLanguageServer,
+  CompletionCandidate,
 } from 'stardog-language-utils';
-import * as uniqBy from 'lodash.uniqby';
-import { ISyntacticContentAssistPath, IToken } from 'chevrotain';
+import uniqBy from 'lodash.uniqby';
+import { IToken } from 'chevrotain';
 
 const ARBITRARILY_LARGE_NUMBER = 100000000000000;
-
-interface CompletionCandidate extends ISyntacticContentAssistPath {
-  replacementRange?: {
-    start: number;
-    end: number;
-  };
-}
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -202,15 +196,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
     }
 
-    const tokenIdxAtCursor = tokens.findIndex((tkn) => {
-      if (
+    const tokenIdxAtCursor = tokens.findIndex(
+      (tkn) =>
         tkn.startOffset <= document.offsetAt(params.position) &&
         tkn.endOffset + 1 >= document.offsetAt(params.position)
-      ) {
-        return true;
-      }
-      return false;
-    });
+    );
 
     if (tokenIdxAtCursor < 0) {
       return;

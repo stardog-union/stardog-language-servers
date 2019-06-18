@@ -25,7 +25,7 @@ const cliConfig = {
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'cli.js',
-    library: 'srs-language-server',
+    library: 'shacl-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
     globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525
@@ -94,7 +94,7 @@ const workerConfig = {
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'worker.js',
-    library: 'srs-language-server',
+    library: 'shacl-language-server',
     libraryTarget: 'umd',
     umdNamedDefine: true,
     globalObject: "typeof self !== 'undefined' ? self : this", // https://github.com/webpack/webpack/issues/6525

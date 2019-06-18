@@ -1,4 +1,4 @@
-import * as escape from 'escape-string-regexp';
+import escape from 'escape-string-regexp';
 
 const abbreviate = (
   prefix: string,

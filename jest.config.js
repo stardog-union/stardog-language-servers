@@ -25,4 +25,9 @@ module.exports = {
   ],
   coverageReporters: ['json', 'lcov', 'text', 'text-summary'],
   setupTestFrameworkScriptFile: './jest.setup.js',
+  globals: {
+    'ts-jest': {
+      diagnostics: false, // don't fail tests due to type checker
+    },
+  },
 };

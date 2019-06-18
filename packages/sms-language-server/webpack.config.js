@@ -2,8 +2,21 @@ const path = require('path');
 const { isCI } = require('ci-info');
 const { BannerPlugin } = require('webpack');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const SRC_DIR = path.join(__dirname, 'src');
+
+// Don't minify the parser names; this breaks chevrotain. See here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED
+const reserved = [
+  'BaseSparqlParser',
+  'W3SpecSparqlParser',
+  'StardogSparqlParser',
+  'SrsParser',
+  'SmsParser',
+  'TurtleParser',
+  'ShaclParser',
+  'Parser',
+];
 
 const cliConfig = {
   mode: 'production',
@@ -57,6 +70,19 @@ const cliConfig = {
     }),
   ],
   devtool: 'source-map',
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true,
+        terserOptions: {
+          // Chevrotain does not cooperate with webpack mangling (see here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED).
+          mangle: {
+            reserved,
+          },
+        },
+      }),
+    ],
+  },
 };
 
 const workerConfig = {
@@ -113,7 +139,20 @@ const workerConfig = {
     net: 'empty',
     fs: 'empty',
     net: 'empty',
-  }
+  },
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true,
+        terserOptions: {
+          // Chevrotain does not cooperate with webpack mangling (see here: https://sap.github.io/chevrotain/docs/FAQ.html#MINIFIED).
+          mangle: {
+            reserved,
+          },
+        },
+      }),
+    ],
+  },
 };
 
 module.exports = [cliConfig, workerConfig];
