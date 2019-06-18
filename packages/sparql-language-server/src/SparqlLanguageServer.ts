@@ -196,15 +196,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
     }
 
-    const tokenIdxAtCursor = tokens.findIndex((tkn) => {
-      if (
+    const tokenIdxAtCursor = tokens.findIndex(
+      (tkn) =>
         tkn.startOffset <= document.offsetAt(params.position) &&
         tkn.endOffset + 1 >= document.offsetAt(params.position)
-      ) {
-        return true;
-      }
-      return false;
-    });
+    );
 
     if (tokenIdxAtCursor < 0) {
       return;
