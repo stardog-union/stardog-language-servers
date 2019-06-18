@@ -2,8 +2,10 @@
 
 Standalone, IDE-agnostic language servers for [Stardog](https://www.stardog.com)
 languages, including [SPARQL](https://en.wikipedia.org/wiki/SPARQL),
-[Turtle](https://en.wikipedia.org/wiki/Turtle_(syntax)), and
-[Stardog Mapping Syntax 2 (SMS)](https://www.stardog.com/docs/#_stardog_mapping_syntax_2).
+[Turtle](https://en.wikipedia.org/wiki/Turtle_(syntax)),
+[Stardog Mapping Syntax 2 (SMS)](https://www.stardog.com/docs/#_stardog_mapping_syntax_2),
+[Stardog Rules Syntax (SRS)](https://www.stardog.com/docs/#_stardog_rules_syntax), and
+the Turtle serialization of [Shapes Constraint Language (SHACL)](https://en.wikipedia.org/wiki/SHACL).
 
 This work is the basis of [Stardog Studio](http://stardog.com/studio), the Knowledge Graph IDE for Stardog.
 
