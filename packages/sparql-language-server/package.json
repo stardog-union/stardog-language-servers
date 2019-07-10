@@ -49,7 +49,7 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniqby": "^4.7.0",
-    "millan": "^2.2.2",
+    "millan": "^2.3.0",
     "stardog-language-utils": "^1.3.0",
     "vscode-languageserver": "^5.2.1"
   },

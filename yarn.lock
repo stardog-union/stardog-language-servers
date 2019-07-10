@@ -5069,10 +5069,10 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
 
-millan@^2.2.2:
-  version "2.2.2"
-  resolved "https://registry.npmjs.org/millan/-/millan-2.2.2.tgz#9f4b25705e00d7ecdcde1c46497d806a887598f2"
-  integrity sha512-BDLVckrzgznmNW1a07RLIqQF5hoKoCiUrL80GvK5Of5gK2Pn2ai0Ph2XwqQ/R3vyno88HEOSimZyFvkIWsiFSg==
+millan@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.3.0.tgz#16108574723767c7e6ea92357ac56132066ae8f1"
+  integrity sha512-uqwCRgnoN2F8DbJy7j5DDuYjceZnI0rS89Yvs1MIx5zNnJjKGAfMzPp09+1qBotL4VRhW2JGs9tRk/PuMYVR/Q==
   dependencies:
     chevrotain "^4.3.3"
     escape-string-regexp "^2.0.0"

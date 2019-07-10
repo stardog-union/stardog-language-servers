@@ -67,7 +67,7 @@
     "chevrotain": "^4.3.3",
     "escape-string-regexp": "^1.0.5",
     "lodash.uniqby": "^4.7.0",
-    "millan": "^2.2.2",
+    "millan": "^2.3.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
