@@ -1,4 +1,4 @@
-# graphql-language-server
+# stardog-graphql-language-server
 
 A server providing language intelligence (autocomplete,
 diagnostics, hover tooltips, etc.) for [GraphQL](https://graphql.github.io/graphql-spec/), including both
