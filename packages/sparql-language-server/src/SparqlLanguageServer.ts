@@ -87,8 +87,13 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
   }
 
   handleUpdateCompletionData(update: SparqlCompletionData) {
+    // `relationshipCompletionItems` and `typeCompletionItems` must be updated
+    // in 2 different scenarios:
     // #1 - namespaces provided after relationshipBindings or typeBindings
-    // #2 - namespacees provided before relationshipBindings or typeBindings
+    // #2 - namespaces provided before relationshipBindings or typeBindings
+    // Otherwise you can find yourself with 1, both or neither reflecting the
+    // namespace prefixes based on the order the updates are processed, which is
+    // indeterminate.
     if (update.namespaceMap) {
       this.namespaceMap = namespaceArrayToObj(update.namespaceMap);
       if (!update.relationshipBindings && this.relationshipBindings) {
