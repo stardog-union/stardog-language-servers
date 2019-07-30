@@ -43,7 +43,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
 > {
   protected parser: StardogSparqlParser | W3SpecSparqlParser;
   private namespaceMap = {};
+  private relationshipBindings = [];
   private relationshipCompletionItems = [];
+  private typeBindings = [];
   private typeCompletionItems = [];
 
   constructor(connection: IConnection) {
@@ -85,10 +87,31 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
   }
 
   handleUpdateCompletionData(update: SparqlCompletionData) {
+    // #1 - namespaces provided after relationshipBindings or typeBindings
+    // #2 - namespacees provided before relationshipBindings or typeBindings
     if (update.namespaceMap) {
       this.namespaceMap = namespaceArrayToObj(update.namespaceMap);
+      if (!update.relationshipBindings && this.relationshipBindings) {
+        this.relationshipCompletionItems = this.buildCompletionItemsFromData(
+          this.namespaceMap,
+          this.relationshipBindings.map((binding) => ({
+            iri: binding.relationship.value,
+            count: binding.count.value,
+          }))
+        );
+      }
+      if (!update.typeBindings && this.typeBindings) {
+        this.typeCompletionItems = this.buildCompletionItemsFromData(
+          this.namespaceMap,
+          this.typeBindings.map((binding) => ({
+            iri: binding.type.value,
+            count: binding.count.value,
+          }))
+        );
+      }
     }
     if (update.relationshipBindings) {
+      this.relationshipBindings = update.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
         update.relationshipBindings.map((binding) => ({
@@ -98,6 +121,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       );
     }
     if (update.typeBindings) {
+      this.typeBindings = update.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
         update.typeBindings.map((binding) => ({
