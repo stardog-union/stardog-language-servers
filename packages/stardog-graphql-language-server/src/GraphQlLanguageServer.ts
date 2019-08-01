@@ -23,9 +23,12 @@ import {
   AbstractLanguageServer,
   CompletionCandidate,
 } from 'stardog-language-utils';
-import { ISemanticError } from 'millan';
+import { ISemanticError, TokenType } from 'millan';
 
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
+
+const is = (tokenType: TokenType, name: string) =>
+  tokenType.CATEGORIES.some((categoryToken) => categoryToken.name === name);
 
 @autoBindMethods
 export class GraphQlLanguageServer extends AbstractLanguageServer<
@@ -60,7 +63,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
         completionProvider: {
-          triggerCharacters: ['$'],
+          triggerCharacters: ['$', '@'],
         },
         hoverProvider: true,
       },
@@ -78,21 +81,40 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
     }
 
-    const tokenIdxAtCursor = tokens.findIndex(
-      (tkn) =>
-        tkn.startOffset <= document.offsetAt(params.position) &&
-        tkn.endOffset + 1 >= document.offsetAt(params.position)
+    const cursorOffset = document.offsetAt(params.position);
+    const tokenAtCursor = tokens.find(
+      (token) =>
+        token.startOffset <= cursorOffset &&
+        token.endOffset !== token.startOffset &&
+        token.endOffset >= cursorOffset
     );
-
-    if (tokenIdxAtCursor < 0) {
-      return;
-    }
-
-    const tokenAtCursor = tokens[tokenIdxAtCursor];
-    const tokensUpToCursor = tokens.slice(0, tokenIdxAtCursor);
+    const tokenIdxAtOrAfterCursor = tokenAtCursor
+      ? tokens.indexOf(tokenAtCursor)
+      : tokens.findIndex((token) => token.startOffset >= cursorOffset);
+    const tokenBeforeCursor =
+      tokens[
+        (tokenIdxAtOrAfterCursor !== -1
+          ? tokenIdxAtOrAfterCursor
+          : tokens.length) - 1
+      ];
+    const isNameTokenImmediatelyBeforeCursor =
+      tokenBeforeCursor &&
+      tokenBeforeCursor.endOffset === cursorOffset - 1 &&
+      tokenBeforeCursor.tokenType.name === 'Name';
+    // If a Name token is immediately before the cursor, then we don't include
+    // it as part of the token vector for content assistance, since the user
+    // may still be writing the rest of the Name.
+    const tokenVectorForContentAssist = isNameTokenImmediatelyBeforeCursor
+      ? tokens.slice(0, tokens.indexOf(tokenBeforeCursor))
+      : tokens.slice(
+          0,
+          tokenIdxAtOrAfterCursor !== -1
+            ? tokenIdxAtOrAfterCursor
+            : tokens.length
+        );
     const candidates: CompletionCandidate[] = this.parser.computeContentAssist(
       'Document',
-      tokensUpToCursor
+      tokenVectorForContentAssist
     );
 
     const replaceTokenAtCursor = (
@@ -108,8 +130,12 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         };
       } else {
         textEditRange = {
-          start: document.positionAt(tokenAtCursor.startOffset),
-          end: document.positionAt(tokenAtCursor.endOffset + 1),
+          start: tokenAtCursor
+            ? document.positionAt(tokenAtCursor.startOffset)
+            : document.positionAt(cursorOffset),
+          end: tokenAtCursor
+            ? document.positionAt(tokenAtCursor.endOffset + 1)
+            : document.positionAt(cursorOffset),
         };
       }
 
@@ -118,20 +144,40 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
 
     // Completions are collected in this way (pushing, etc.) for
     // speed/complexity reasons (fewer map/filter/flatten operations needed).
-    const allCompletions = [];
+    const allCompletions: CompletionItem[] = [];
     candidates.forEach((candidate) => {
+      // Don't include punctuation in completion results.
+      if (is(candidate.nextTokenType, 'Punctuator')) {
+        return;
+      }
+
       const completionItem = this.getCompletionItem(
         candidate,
         replaceTokenAtCursor
       );
+
       if (!completionItem) {
         return;
       }
 
-      if (Array.isArray(completionItem)) {
-        allCompletions.push(...completionItem.filter(Boolean));
-      } else {
+      if (!isNameTokenImmediatelyBeforeCursor) {
         allCompletions.push(completionItem);
+      } else if (completionItem.label.startsWith(tokenBeforeCursor.image)) {
+        // If a Name token is immediately before the cursor, we only add
+        // candidates that start with the text of that name (since the user may
+        // still be typing the rest of the name). If the user accepts one of
+        // those candidates, it should replace the full Name token before the
+        // cursor.
+        allCompletions.push({
+          ...completionItem,
+          textEdit: TextEdit.replace(
+            {
+              start: document.positionAt(tokenBeforeCursor.startOffset),
+              end: document.positionAt(tokenBeforeCursor.endOffset),
+            },
+            completionItem.label
+          ),
+        });
       }
     });
 
@@ -144,7 +190,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       replacement: string,
       replacementRange?: CompletionCandidate['replacementRange']
     ) => TextEdit
-  ): CompletionItem | CompletionItem[] | void {
+  ): CompletionItem | void {
     const { PATTERN } = candidate.nextTokenType;
 
     if (typeof PATTERN !== 'string') {

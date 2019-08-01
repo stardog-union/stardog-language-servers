@@ -48,7 +48,7 @@
   ],
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
-    "millan": "^2.3.0",
+    "millan": "^2.4.0",
     "stardog-language-utils": "^1.3.0",
     "vscode-languageserver": "^5.2.1"
   },

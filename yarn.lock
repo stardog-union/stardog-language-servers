@@ -1675,10 +1675,10 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha1-kAlISfCTfy7twkJdDSip5fDLrZ4=
 
-chevrotain@^4.3.3:
-  version "4.3.3"
-  resolved "https://registry.npmjs.org/chevrotain/-/chevrotain-4.3.3.tgz#4b02541d9c414ecd0490db48664be7304d798b80"
-  integrity sha512-DsmAmF5urXboHHXqEr26Ot//S+l3yrOr7UwwgWQ+aNNlYpmnYK1flxplwJ5cIUgP9toKFsJ0VeLT1sq350A9Hg==
+chevrotain@4.4.0:
+  version "4.4.0"
+  resolved "https://registry.npmjs.org/chevrotain/-/chevrotain-4.4.0.tgz#552366430143c8b28cad654f92aa83711edbd1c9"
+  integrity sha512-CS0auzIhlLxo9RCVarVZJIsKj339jJrLIdCbX3rwk/kTu7+VkYdiXiAD8aJOXJEcRc1GGcbOQ587e/85+xLxaA==
   dependencies:
     regexp-to-ast "0.4.0"
 
@@ -5069,12 +5069,12 @@ micromatch@^3.1.10, micromatch@^3.1.4, micromatch@^3.1.8:
     snapdragon "^0.8.1"
     to-regex "^3.0.2"
 
-millan@^2.3.0:
-  version "2.3.0"
-  resolved "https://registry.npmjs.org/millan/-/millan-2.3.0.tgz#16108574723767c7e6ea92357ac56132066ae8f1"
-  integrity sha512-uqwCRgnoN2F8DbJy7j5DDuYjceZnI0rS89Yvs1MIx5zNnJjKGAfMzPp09+1qBotL4VRhW2JGs9tRk/PuMYVR/Q==
+millan@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.4.0.tgz#d3425b04f021ff061c389501bec0e19af0daeaca"
+  integrity sha512-okNyRpDEL2hf9fGW5MlDFkWg0uvzj4IKSPcPfM6dhetlKiViShaMrDogutb6LJf2POFboTCFBGIrZMgk+Y0Esg==
   dependencies:
-    chevrotain "^4.3.3"
+    chevrotain "4.4.0"
     escape-string-regexp "^2.0.0"
     lodash.isequal "^4.5.0"
 
