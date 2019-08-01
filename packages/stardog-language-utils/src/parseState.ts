@@ -1,27 +1,37 @@
 import { CstNode, IToken } from 'millan';
 
+interface InternalParseStateManagerStateForUri {
+  latestCst?: CstNode;
+  latestTokens?: IToken[];
+}
+
 export const getParseStateManager = () => {
-  const latestCstByUri: {
-    [uri: string]: CstNode;
-  } = {};
-  const latestTokensByUri: {
-    [uri: string]: IToken[];
-  } = {};
+  const state: { [uri: string]: InternalParseStateManagerStateForUri } = {};
 
   return {
-    getParseStateForUri: (uri: string): ParseState => ({
-      cst: latestCstByUri[uri],
-      tokens: latestTokensByUri[uri],
-    }),
+    getParseStateForUri: (uri: string): ParseState => {
+      const stateForUri =
+        state[uri] || ({} as InternalParseStateManagerStateForUri);
 
-    saveParseStateForUri(uri, { cst, tokens }: ParseState) {
-      latestCstByUri[uri] = cst;
-      latestTokensByUri[uri] = tokens;
+      return {
+        cst: stateForUri.latestCst,
+        tokens: stateForUri.latestTokens,
+      };
+    },
+
+    saveParseStateForUri(uri, nextParseState: Partial<ParseState> = {}) {
+      if (!state[uri]) {
+        state[uri] = {};
+      }
+
+      Object.keys(nextParseState).forEach((key) => {
+        const stateKey = `latest${key[0].toUpperCase()}${key.slice(1)}`;
+        state[uri][stateKey] = nextParseState[key];
+      });
     },
 
     clearParseStateForUri(uri: string) {
-      latestCstByUri[uri] = undefined;
-      latestTokensByUri[uri] = undefined;
+      state[uri] = {};
     },
   };
 };

@@ -1,6 +1,6 @@
 {
   "name": "shacl-language-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/ShaclLanguageServer.d.ts",
@@ -52,8 +52,8 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniqby": "^4.7.0",
-    "millan": "^2.2.2",
-    "stardog-language-utils": "^1.3.0",
+    "millan": "^2.4.0",
+    "stardog-language-utils": "^1.3.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
