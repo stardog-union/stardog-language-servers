@@ -70,6 +70,7 @@ const cliConfig = {
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
       workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
   ],
   devtool: 'source-map',
@@ -134,6 +135,7 @@ const workerConfig = {
       watch: SRC_DIR,
       // CI memory limits make building with more than one CPU for type-checking too fragile, unfortunately
       workers: isCI ? ForkTsCheckerWebpackPlugin.ONE_CPU : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
   ],
   devtool: 'source-map',

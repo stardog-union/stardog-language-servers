@@ -54,6 +54,7 @@ const cliConfig = {
       workers: isCI
         ? ForkTsCheckerWebpackPlugin.ONE_CPU
         : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
     new CopyWebpackPlugin([
       {
@@ -113,6 +114,7 @@ const workerConfig = {
       workers: isCI
         ? ForkTsCheckerWebpackPlugin.ONE_CPU
         : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
   ],
   devtool: 'source-map',

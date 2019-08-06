@@ -72,6 +72,7 @@ const cliConfig = {
       workers: isCI
         ? ForkTsCheckerWebpackPlugin.ONE_CPU
         : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
   ],
   devtool: 'source-map',
@@ -138,6 +139,7 @@ const workerConfig = {
       workers: isCI
         ? ForkTsCheckerWebpackPlugin.ONE_CPU
         : ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+      memoryLimit: 4096,
     }),
   ],
   devtool: 'source-map',
