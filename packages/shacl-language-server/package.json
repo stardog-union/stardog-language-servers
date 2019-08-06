@@ -1,6 +1,6 @@
 {
   "name": "shacl-language-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/ShaclLanguageServer.d.ts",
