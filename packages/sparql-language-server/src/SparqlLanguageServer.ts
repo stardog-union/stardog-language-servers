@@ -94,8 +94,8 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     // Otherwise you can find yourself with 1, both or neither reflecting the
     // namespace prefixes based on the order the updates are processed, which is
     // indeterminate.
-    if (update.namespaceMap) {
-      this.namespaceMap = namespaceArrayToObj(update.namespaceMap);
+    if (update.namespaces) {
+      this.namespaceMap = namespaceArrayToObj(update.namespaces);
       if (!update.relationshipBindings && this.relationshipBindings) {
         this.relationshipCompletionItems = this.buildCompletionItemsFromData(
           this.namespaceMap,
