@@ -72,10 +72,10 @@
   },
   "scripts": {
     "clean": "rimraf ./dist",
-    "lint": "tslint --project tsconfig.json",
-    "pack": "webpack",
+    "lint": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/tslint --project tsconfig.json",
+    "pack": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/webpack",
     "build": "run-s clean lint pack types",
     "dev": "webpack -w",
-    "types": "tsc --emitDeclarationOnly"
+    "types": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/tsc --emitDeclarationOnly"
   }
 }
