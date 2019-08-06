@@ -43,7 +43,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
 > {
   protected parser: StardogSparqlParser | W3SpecSparqlParser;
   private namespaceMap = {};
+  private relationshipBindings = [];
   private relationshipCompletionItems = [];
+  private typeBindings = [];
   private typeCompletionItems = [];
 
   constructor(connection: IConnection) {
@@ -85,22 +87,35 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
   }
 
   handleUpdateCompletionData(update: SparqlCompletionData) {
-    if (update.namespaceMap) {
-      this.namespaceMap = namespaceArrayToObj(update.namespaceMap);
+    // `relationshipCompletionItems` and `typeCompletionItems` must be updated
+    // in 2 different scenarios:
+    // #1 - namespaces provided after relationshipBindings or typeBindings
+    // #2 - namespaces provided before relationshipBindings or typeBindings
+    // Otherwise you can find yourself with 1, both or neither reflecting the
+    // namespace prefixes based on the order the updates are processed, which is
+    // indeterminate.
+    if (update.namespaces) {
+      this.namespaceMap = namespaceArrayToObj(update.namespaces);
     }
-    if (update.relationshipBindings) {
+    if (
+      update.relationshipBindings ||
+      (update.namespaces && this.relationshipBindings)
+    ) {
+      this.relationshipBindings =
+        update.relationshipBindings || this.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        update.relationshipBindings.map((binding) => ({
+        this.relationshipBindings.map((binding) => ({
           iri: binding.relationship.value,
           count: binding.count.value,
         }))
       );
     }
-    if (update.typeBindings) {
+    if (update.typeBindings || (update.namespaces && this.typeBindings)) {
+      this.typeBindings = update.typeBindings || this.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        update.typeBindings.map((binding) => ({
+        this.typeBindings.map((binding) => ({
           iri: binding.type.value,
           count: binding.count.value,
         }))
