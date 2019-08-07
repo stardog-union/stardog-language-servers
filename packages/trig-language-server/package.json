@@ -1,0 +1,85 @@
+{
+  "name": "trig-language-server",
+  "version": "2.2.2",
+  "main": "./dist/cli.js",
+  "browser": "./dist/worker.js",
+  "types": "./dist/types/TrigLanguageServer.d.ts",
+  "bin": "./dist/cli.js",
+  "license": "Apache-2.0",
+  "keywords": [
+    "trig",
+    "stardog",
+    "language server",
+    "rdf",
+    "linked data",
+    "knowledge graph"
+  ],
+  "author": {
+    "name": "Stardog Union",
+    "url": "https://stardog.com"
+  },
+  "contributors": [
+    {
+      "name": "Jason Rogers",
+      "email": "jason@stardog.com"
+    },
+    {
+      "name": "Ty Soehngen",
+      "email": "ty@stardog.com"
+    },
+    {
+      "name": "Sandy Gonzales",
+      "email": "sandy@stardog.com"
+    },
+    {
+      "name": "Annee Barrett",
+      "email": "annee@stardog.com"
+    },
+    {
+      "name": "Brian Rubinton",
+      "email": "brian.rubinton@stardog.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stardog-union/stardog-language-servers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stardog-union/stardog-language-servers/issues"
+  },
+  "homepage": "https://github.com/stardog-union/stardog-language-servers#readme",
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "dependencies": {
+    "class-autobind-decorator": "^3.0.1",
+    "millan": "^2.4.0",
+    "stardog-language-utils": "^1.3.2",
+    "vscode-languageserver": "^5.2.1"
+  },
+  "scripts": {
+    "clean": "rimraf ./dist",
+    "lint": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/tslint --project tsconfig.json",
+    "pack": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/webpack",
+    "build": "run-s clean lint pack types",
+    "dev": "webpack -w",
+    "types": "node --max_old_space_size=4096 --optimize_for_size ./node_modules/.bin/tsc --emitDeclarationOnly"
+  },
+  "devDependencies": {
+    "ci-info": "^2.0.0",
+    "fork-ts-checker-webpack-plugin": "^0.5.2",
+    "rimraf": "^2.6.2",
+    "ts-loader": "^5.3.1",
+    "tslint": "^5.11.0",
+    "tslint-config-airbnb": "^5.11.1",
+    "tslint-config-prettier": "^1.17.0",
+    "tslint-loader": "^3.5.4",
+    "typescript": "^3.5.1",
+    "vscode-languageserver-protocol": "^3.14.1",
+    "webpack": "^4.27.1",
+    "webpack-cli": "^3.1.2"
+  }
+}
