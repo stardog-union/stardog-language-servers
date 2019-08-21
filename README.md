@@ -2,6 +2,7 @@
 
 Standalone, IDE-agnostic language servers for [Stardog](https://www.stardog.com)
 languages, including [SPARQL](https://en.wikipedia.org/wiki/SPARQL),
+[GraphQL](https://graphql.github.io/graphql-spec/),
 [Turtle](https://en.wikipedia.org/wiki/Turtle_(syntax)),
 [TriG](https://en.wikipedia.org/wiki/TriG_(syntax)),
 [Stardog Mapping Syntax 2 (SMS)](https://www.stardog.com/docs/#_stardog_mapping_syntax_2),
@@ -17,7 +18,8 @@ This work is the basis of [Stardog Studio](http://stardog.com/studio), the Knowl
 - Additional support for running purely in the browser using web workers as a
 transport (no need for sockets or other transports)
 - Support for W3C-standard SPARQL, Turtle, and TriG, as well as Stardog SPARQL
-extensions and Stardog Mapping Syntax 2 (SMS) (with additional languages coming
+extensions, Stardog Mapping Syntax 2 (SMS), Stardog Rules Syntax (SRS), the 
+Turtle serialization of SHACL, and GraphQL (with additional languages coming
 soon!)
 - Compatible with any IDE or editor capable of working with LSP-compliant
 language servers
