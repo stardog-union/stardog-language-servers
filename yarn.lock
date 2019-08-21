@@ -5078,6 +5078,15 @@ millan@^2.4.0:
     escape-string-regexp "^2.0.0"
     lodash.isequal "^4.5.0"
 
+millan@^2.5.0:
+  version "2.5.0"
+  resolved "https://registry.npmjs.org/millan/-/millan-2.5.0.tgz#a31b449eee3accde6d2e354724d57cc11f6b2656"
+  integrity sha512-oR544yV2ctlf/6aGiO6ztbc6MbgGhVjgwFAOBwulC5j3xFG07l93263asoKnuvJi5mz0wunRHPDFAWvMSW0DUg==
+  dependencies:
+    chevrotain "4.4.0"
+    escape-string-regexp "^2.0.0"
+    lodash.isequal "^4.5.0"
+
 miller-rabin@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/miller-rabin/-/miller-rabin-4.0.1.tgz#f080351c865b0dc562a8462966daa53543c78a4d"
