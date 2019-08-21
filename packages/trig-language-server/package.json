@@ -1,20 +1,17 @@
 {
-  "name": "shacl-language-server",
-  "version": "1.1.0",
+  "name": "trig-language-server",
+  "version": "1.0.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
-  "types": "./dist/types/ShaclLanguageServer.d.ts",
+  "types": "./dist/types/TrigLanguageServer.d.ts",
   "bin": "./dist/cli.js",
   "license": "Apache-2.0",
   "keywords": [
-    "shacl",
+    "trig",
     "stardog",
     "language server",
-    "constraints",
-    "integrity",
-    "linked data",
     "rdf",
-    "query",
+    "linked data",
     "knowledge graph"
   ],
   "author": {
@@ -59,7 +56,6 @@
   ],
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
-    "lodash.uniqby": "^4.7.0",
     "millan": "^2.5.0",
     "stardog-language-utils": "^1.4.0",
     "vscode-languageserver": "^5.2.1"
@@ -76,7 +72,6 @@
     "ci-info": "^2.0.0",
     "fork-ts-checker-webpack-plugin": "^0.5.2",
     "rimraf": "^2.6.2",
-    "terser-webpack-plugin": "^1.2.1",
     "ts-loader": "^5.3.1",
     "tslint": "^5.11.0",
     "tslint-config-airbnb": "^5.11.1",

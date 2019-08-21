@@ -17,6 +17,7 @@ const reserved = [
   'SrsParser',
   'SmsParser',
   'TurtleParser',
+  'TrigParser',
   'ShaclParser',
   'Parser',
 ];
