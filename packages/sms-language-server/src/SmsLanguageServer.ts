@@ -106,7 +106,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
     ) {
       return [
         {
-          label: 'sms2MappingTemplate',
+          label: 'sms2MappingSnippet',
           kind: lsp.CompletionItemKind.Enum,
           detail: 'Create a basic fill-in-the-blanks SMS2 mapping',
           documentation:
