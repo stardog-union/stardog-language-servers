@@ -3,11 +3,9 @@ import { autoBindMethods } from 'class-autobind-decorator';
 import {
   errorMessageProvider,
   AbstractLanguageServer,
+  sms2Snippets,
 } from 'stardog-language-utils';
 import { SmsParser } from 'millan';
-
-const basicMappingSnippet =
-  '# A basic SMS2 mapping.\n# See https://www.stardog.com/docs/#_stardog_mapping_syntax_2 for details.\nMAPPING$0\nFROM ${1|SQL,JSON,GRAPHQL|} {\n    $2\n}\nTO {\n    $3\n}\nWHERE {\n    $4\n}\n';
 
 @autoBindMethods
 export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
@@ -106,7 +104,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
     ) {
       return [
         {
-          label: 'sms2MappingSnippet',
+          label: 'basicSMS2Mapping',
           kind: lsp.CompletionItemKind.Enum,
           detail: 'Create a basic fill-in-the-blanks SMS2 mapping',
           documentation:
@@ -117,7 +115,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
               document.positionAt(cursorOffset - 1),
               document.positionAt(cursorOffset - 1)
             ),
-            basicMappingSnippet
+            sms2Snippets.basicSMS2Mapping
           ),
         },
       ];

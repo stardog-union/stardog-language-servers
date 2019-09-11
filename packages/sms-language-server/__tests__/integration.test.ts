@@ -51,7 +51,7 @@ describe('sms language server', () => {
   afterAll(() => {
     cp.kill();
   });
-  it('publishes diagnostics', async (done) => {
+  it('publishes diagnostics', (done) => {
     let called = false;
     connection.onNotification(PublishDiagnosticsNotification.type, (params) => {
       if (called) {
@@ -111,7 +111,7 @@ describe('sms language server', () => {
           'Inserts a basic mapping in Stardog Mapping Syntax 2 (SMS2) with tabbing functionality and content assistance. For more documentation of SMS2, check out "Help" --> "Stardog Docs".',
         insertTextFormat: 2,
         kind: 13,
-        label: 'sms2MappingSnippet',
+        label: 'basicSMS2Mapping',
         textEdit: {
           newText:
             '# A basic SMS2 mapping.\n# See https://www.stardog.com/docs/#_stardog_mapping_syntax_2 for details.\nMAPPING$0\nFROM ${1|SQL,JSON,GRAPHQL|} {\n    $2\n}\nTO {\n    $3\n}\nWHERE {\n    $4\n}\n',

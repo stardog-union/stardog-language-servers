@@ -1,4 +1,4 @@
-import { IToken } from 'millan';
+import { IToken, TokenType } from 'millan';
 import uniqBy from 'lodash.uniqby';
 
 export const regexPatternToString = (pattern: RegExp | string) =>
@@ -29,3 +29,16 @@ export const getUniqueIdentifiers = (tokens: IToken[]) => ({
   localNames: makeFilterUniqueTokensByType(isLocalName)(tokens),
   iris: makeFilterUniqueTokensByType(isIriRef)(tokens),
 });
+
+export const getTokenTypesForCategory = (
+  categoryName: string,
+  allTokens: TokenType[]
+) =>
+  allTokens.filter((tokenType) =>
+    Boolean(
+      tokenType.CATEGORIES &&
+        tokenType.CATEGORIES.some(
+          (category) => category.tokenName === categoryName
+        )
+    )
+  );

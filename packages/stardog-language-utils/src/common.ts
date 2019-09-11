@@ -4,4 +4,4 @@ export * from './language-services';
 export * from './namespaceUtils';
 export * from './parseState';
 export * from './AbstractLanguageServer';
-export * from './get-token-types-for-category';
+export * from './snippets';
