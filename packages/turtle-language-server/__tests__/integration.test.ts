@@ -55,7 +55,7 @@ describe('turtle language server', () => {
       expect(params.diagnostics).toMatchObject([
         {
           message:
-            "\tExpected one of the following:\n IRIREF\n PNAME_LN\n PNAME_NS\n BLANK_NODE_LABEL\n ANON e.g. []\n '('\n '['\n STRING_LITERAL_QUOTE\n STRING_LITERAL_SINGLE_QUOTE\n STRING_LITERAL_LONG_SINGLE_QUOTE\n STRING_LITERAL_LONG_QUOTE\n INTEGER\n DECIMAL\n DOUBLE\n 'true'\n 'false'",
+            "\tExpected one of the following:\n IRIREF\n PNAME_LN\n PNAME_NS\n BLANK_NODE_LABEL\n ANON e.g. []\n '('\n '['\n STRING_LITERAL_QUOTE\n STRING_LITERAL_SINGLE_QUOTE\n STRING_LITERAL_LONG_SINGLE_QUOTE\n STRING_LITERAL_LONG_QUOTE\n INTEGER\n DECIMAL\n DOUBLE\n 'TRUE'\n 'FALSE'",
           source: 'object',
           severity: 1,
           range: {

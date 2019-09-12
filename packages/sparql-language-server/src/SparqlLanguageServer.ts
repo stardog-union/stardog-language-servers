@@ -341,7 +341,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     ).map((completionCandidate: CompletionCandidate) => {
       const keywordString = regexPatternToString(
         completionCandidate.nextTokenType.PATTERN
-      ).toUpperCase();
+      );
       return {
         label: keywordString,
         kind: CompletionItemKind.Keyword,

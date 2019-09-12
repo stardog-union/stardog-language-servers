@@ -5,7 +5,6 @@ export const regexPatternToString = (pattern: RegExp | string) =>
   pattern
     .toString()
     .split('/')[1]
-    .toLowerCase()
     .replace(' +', ' '); // this may be flakey. the sparql phrases "Insert Data", "Delete Where", etc. have a "+" in their regexps in millan
 
 export const makeFilterUniqueTokensByType = (
