@@ -126,7 +126,7 @@ describe('sparql language server', () => {
       position: Position.create(0, 5),
     });
     expect(
-      (res as CompletionItem[]).some((item) => item.label === 'paths shortest')
+      (res as CompletionItem[]).some((item) => item.label === 'PATHS SHORTEST')
     ).toBe(true);
     done();
   });
@@ -146,11 +146,11 @@ describe('sparql language server', () => {
       textDocument: longAltsDoc,
       position: Position.create(0, docText.length),
     });
+    expect((res as CompletionItem[]).some((item) => item.label === 'STR')).toBe(
+      true
+    );
     expect(
-      (res as CompletionItem[]).some((item) => item.label === 'str')
-    ).toBe(true);
-    expect(
-      (res as CompletionItem[]).some((item) => item.label === 'strstarts')
+      (res as CompletionItem[]).some((item) => item.label === 'STRSTARTS')
     ).toBe(true);
 
     longAltsDoc.text = `${docText}s`;
@@ -162,10 +162,10 @@ describe('sparql language server', () => {
       position: Position.create(0, docText.length + 1),
     });
     expect(
-      (res as CompletionItem[]).every((item) => item.label !== 'str')
+      (res as CompletionItem[]).every((item) => item.label !== 'STR')
     ).toBe(true);
     expect(
-      (res as CompletionItem[]).some((item) => item.label === 'strstarts')
+      (res as CompletionItem[]).some((item) => item.label === 'STRSTARTS')
     ).toBe(true);
 
     done();
@@ -203,7 +203,7 @@ describe('w3 sparql language server', () => {
       position: Position.create(0, 5),
     });
     expect(
-      (res as CompletionItem[]).some((item) => item.label === 'paths shortest')
+      (res as CompletionItem[]).some((item) => item.label === 'PATHS SHORTEST')
     ).toBe(false);
     done();
   });
