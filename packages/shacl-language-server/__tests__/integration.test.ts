@@ -14,7 +14,6 @@ import {
   HoverRequest,
   Position,
   CompletionRequest,
-  CompletionItem,
 } from 'vscode-languageserver-protocol';
 import { ChildProcess } from 'child_process';
 
@@ -95,7 +94,7 @@ describe('shacl language server', () => {
       textDocument: basicShaclDoc,
       position: Position.create(0, 40),
     });
-    expect(res).toHaveLength(56);
+    expect(res).toHaveLength(54);
     expect(res[0]).toMatchObject({
       label: 'sh:class',
       kind: 20,

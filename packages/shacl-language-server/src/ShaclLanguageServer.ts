@@ -8,7 +8,7 @@ import {
   regexPatternToString,
   getTokenTypesForCategory,
 } from 'stardog-language-utils';
-import { ShaclParser, shaclTokens } from 'millan';
+import { ShaclParser, shaclTokens, sparqlKeywords } from 'millan';
 import { Lexer, TokenType } from 'chevrotain';
 
 const SHACL_TOKEN_PREFIX = 'SHACL_';
@@ -201,22 +201,23 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
       ) as lsp.CompletionItem[];
     }
 
-    const isStringPattern = typeof pattern === 'string';
-
-    if (!isStringPattern && !(pattern instanceof RegExp)) {
-      // This token uses a custom pattern-matching function and we therefore
-      // cannot use its pattern for autocompletion.
+    if (typeof pattern === 'string') {
+      return {
+        label: pattern,
+        kind: lsp.CompletionItemKind.EnumMember,
+        textEdit: tokenReplacer(pattern, candidate.replacementRange),
+      };
+    } else if (pattern instanceof RegExp && tokenName in sparqlKeywords) {
+      const keywordString = regexPatternToString(pattern);
+      return {
+        label: keywordString,
+        kind: lsp.CompletionItemKind.EnumMember,
+        textEdit: tokenReplacer(keywordString, candidate.replacementRange),
+      };
+    } else {
+      // This token uses a custom pattern-matching function or a non-keyword
+      // regex pattern and we therefore cannot use its pattern for autocompletion.
       return;
     }
-
-    const completionString = isStringPattern
-      ? pattern
-      : regexPatternToString(pattern);
-
-    return {
-      label: completionString,
-      kind: lsp.CompletionItemKind.EnumMember,
-      textEdit: tokenReplacer(completionString, candidate.replacementRange),
-    };
   }
 }
