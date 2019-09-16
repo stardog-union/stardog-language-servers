@@ -1,6 +1,6 @@
 {
   "name": "srs-language-server",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SrsLanguageServer.d.ts",

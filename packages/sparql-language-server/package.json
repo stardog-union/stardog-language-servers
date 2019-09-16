@@ -1,6 +1,6 @@
 {
   "name": "sparql-language-server",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SparqlLanguageServer.ts",

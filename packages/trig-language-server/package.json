@@ -1,6 +1,6 @@
 {
   "name": "trig-language-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/TrigLanguageServer.d.ts",
