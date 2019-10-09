@@ -36,7 +36,8 @@ export const abbreviatePrefixArray = (
         // TODO Can there ever be multiple prefixes in a column? If not, we should
         // break the reduce once replace is successful.
         (newIri, row) => {
-          const [alias, prefix] = row.split('=');
+          const [alias, ...splitPrefix] = row.split('=');
+          const prefix = splitPrefix.join('=');
           return abbreviate(prefix, alias, oldIri, newIri);
         },
         oldIri
@@ -61,7 +62,8 @@ export const namespaceObjToArray = (obj) =>
 
 export const namespaceArrayToObj = (array) =>
   array.reduce((acc, row) => {
-    const [alias, prefix] = row.split('=');
+    const [alias, ...splitPrefix] = row.split('=');
+    const prefix = splitPrefix.join('=');
     return {
       ...acc,
       [alias]: prefix,
