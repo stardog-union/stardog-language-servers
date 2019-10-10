@@ -1,9 +1,25 @@
 import {
+  splitNamespace,
   abbreviatePrefixArray,
   namespaceObjToArray,
   namespaceArrayToObj,
   abbreviatePrefixObj,
 } from '../namespaceUtils';
+
+describe('splitNamespace', () => {
+  it('splits a namespace into a string array of the alias and prefix', () => {
+    const namespace = 'foo=http://foo.org/';
+    const [alias, prefix] = splitNamespace(namespace);
+    expect(alias).toBe('foo');
+    expect(prefix).toBe('http://foo.org/');
+  });
+  it('splits a namespace containing or ending with "=" into a string array of the alias and prefix', () => {
+    const namespace = 'foo=http://foo.org/dog=cat=';
+    const [alias, prefix] = splitNamespace(namespace);
+    expect(alias).toBe('foo');
+    expect(prefix).toBe('http://foo.org/dog=cat=');
+  });
+});
 
 describe('namespaceObjToArray', () => {
   it('transforms a namespace obj to an array of "=" separated prefix/alias strings', () => {
