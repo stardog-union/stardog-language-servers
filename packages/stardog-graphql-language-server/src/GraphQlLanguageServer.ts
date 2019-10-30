@@ -41,13 +41,13 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   StardogGraphQlParser | StandardGraphQlParser
 > {
   protected parser: StardogGraphQlParser | StandardGraphQlParser;
-  private namespaceMap = {};
-  private relationshipBindings = [];
-  private relationshipCompletionItems = [];
-  private typeBindings = [];
-  private typeCompletionItems = [];
-  private graphQLValueTypeBindings = [];
-  private graphQLTypeCompletionItems = [];
+  private namespaceMap: { [alias: string]: string } = {};
+  private relationshipBindings: SparqlCompletionData['relationshipBindings'] = [];
+  private relationshipCompletionItems: CompletionItem[] = [];
+  private typeBindings: SparqlCompletionData['typeBindings'] = [];
+  private typeCompletionItems: CompletionItem[] = [];
+  private graphQLValueTypeBindings: SparqlCompletionData['graphQLValueTypeBindings'] = [];
+  private graphQLTypeCompletionItems: CompletionItem[] = [];
 
   constructor(connection: IConnection) {
     // Like the SPARQL server, the GraphQl server instantiates a different parser
@@ -100,10 +100,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     if (update.namespaces) {
       this.namespaceMap = namespaceArrayToObj(update.namespaces);
     }
-    if (
-      update.relationshipBindings ||
-      (update.namespaces && this.relationshipBindings)
-    ) {
+    if (update.relationshipBindings || update.namespaces) {
       this.relationshipBindings =
         update.relationshipBindings || this.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
@@ -115,7 +112,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         CompletionItemKind.Field
       );
     }
-    if (update.typeBindings || (update.namespaces && this.typeBindings)) {
+    if (update.typeBindings || update.namespaces) {
       this.typeBindings = update.typeBindings || this.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
@@ -126,10 +123,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         CompletionItemKind.EnumMember
       );
     }
-    if (
-      update.graphQLValueTypeBindings ||
-      (update.namespaces && this.graphQLValueTypeBindings)
-    ) {
+    if (update.graphQLValueTypeBindings || update.namespaces) {
       this.graphQLValueTypeBindings =
         update.graphQLValueTypeBindings || this.graphQLValueTypeBindings;
       this.graphQLTypeCompletionItems = this.buildGraphQLTypeCompletionItems(
@@ -140,14 +134,14 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   }
 
   buildCompletionItemsFromData(
-    namespaceMap,
+    namespaceMap: { [alias: string]: string },
     irisAndCounts: { iri: string; count: string }[],
     kind: CompletionItemKind
   ): CompletionItem[] {
     // GraphQL cannot idenfy non-prefixed IRIs as fields, so we want to ignore non-prefixed bindings
     const prefixed: CompletionItem[] = [];
 
-    if (!namespaceMap) {
+    if (!Object.keys(namespaceMap).length) {
       return prefixed;
     }
 
@@ -159,6 +153,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         const alphaSortTextForCount =
           ARBITRARILY_LARGE_NUMBER - parseInt(count, 10);
         prefixed.push({
+          // namespaces with a blank prefix do not require the leading underscore
+          // so a prefixed iri of `:Type` can be written as `Type` instead of `_Type`
           label: graphQLIri.slice(graphQLIri.startsWith('_') ? 1 : 0),
           kind,
 
@@ -178,7 +174,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   }
 
   buildGraphQLTypeCompletionItems(
-    namespacesMap,
+    namespaceMap: { [alias: string]: string },
     typesAndIris: { type: string; iri: string }[]
   ): CompletionItem[] {
     return GRAPHQL_VALUE_TYPES.map((graphQLType) => {
@@ -187,9 +183,9 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         kind: CompletionItemKind.Enum,
       };
       const typeAndIri = typesAndIris.find((t) => t.type === graphQLType);
-      if (typeAndIri && namespacesMap) {
+      if (typeAndIri && Object.keys(namespaceMap).length) {
         const { iri } = typeAndIri;
-        const prefixedIri = abbreviatePrefixObj(iri, namespacesMap);
+        const prefixedIri = abbreviatePrefixObj(iri, namespaceMap);
         completionItem.filterText = `${graphQLType}<${iri}>${prefixedIri}`;
       }
       return completionItem;
@@ -352,8 +348,9 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       }
     });
 
+    const hasOnlyFieldCandidate = hasFieldCandidate && !hasNamedTypeCandidate;
     // show relationship completions if the only candidate is a field
-    if (hasFieldCandidate && !hasNamedTypeCandidate) {
+    if (hasOnlyFieldCandidate) {
       allCompletions.push(
         ...this.relationshipCompletionItems.map((item) => ({
           ...item,
@@ -366,10 +363,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     }
     // show type completions if the only candidate is a field
     // or the namedType candidate includes types
-    if (
-      (hasFieldCandidate && !hasNamedTypeCandidate) ||
-      includeTypeCompletions
-    ) {
+    if (hasOnlyFieldCandidate || includeTypeCompletions) {
       allCompletions.push(
         ...this.typeCompletionItems.map((item) => ({
           ...item,
