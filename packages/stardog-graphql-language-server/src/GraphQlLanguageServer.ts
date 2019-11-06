@@ -20,12 +20,18 @@ import {
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   errorMessageProvider,
+  abbreviatePrefixObj,
+  namespaceArrayToObj,
+  LSPExtensionMethod,
+  SparqlCompletionData,
   AbstractLanguageServer,
   CompletionCandidate,
 } from 'stardog-language-utils';
 import { ISemanticError, TokenType } from 'millan';
 
+const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
+const GRAPHQL_VALUE_TYPES = ['Int', 'Float', 'String', 'Boolean', 'Null'];
 
 const is = (tokenType: TokenType, name: string) =>
   tokenType.CATEGORIES.some((categoryToken) => categoryToken.name === name);
@@ -35,15 +41,30 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   StardogGraphQlParser | StandardGraphQlParser
 > {
   protected parser: StardogGraphQlParser | StandardGraphQlParser;
+  private namespaceMap: { [alias: string]: string } = {};
+  private relationshipBindings: SparqlCompletionData['relationshipBindings'] = [];
+  private relationshipCompletionItems: CompletionItem[] = [];
+  private typeBindings: SparqlCompletionData['typeBindings'] = [];
+  private typeCompletionItems: CompletionItem[] = [];
+  private graphQLValueTypeBindings: SparqlCompletionData['graphQLValueTypeBindings'] = [];
+  private graphQLTypeCompletionItems: CompletionItem[] = [];
 
   constructor(connection: IConnection) {
     // Like the SPARQL server, the GraphQl server instantiates a different parser
     // depending on initialization params
     super(connection, null);
+    this.graphQLTypeCompletionItems = this.buildGraphQLTypeCompletionItems(
+      this.namespaceMap,
+      this.graphQLValueTypeBindings
+    );
   }
 
   onInitialization(params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onNotification(
+      LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
+      this.handleUpdateCompletionData
+    );
 
     if (
       params.initializationOptions &&
@@ -68,6 +89,107 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         hoverProvider: true,
       },
     };
+  }
+
+  handleUpdateCompletionData(update: SparqlCompletionData) {
+    // completion items must be updated in 2 different scenarios:
+    // #1 - namespaces provided after bindings
+    // #2 - namespaces provided before bindings
+    // Otherwise you can find yourself with the items not reflecting the namespace
+    // prefixes based on the order the updates are processed, which is indeterminate.
+    if (update.namespaces) {
+      this.namespaceMap = namespaceArrayToObj(update.namespaces);
+    }
+    if (update.relationshipBindings || update.namespaces) {
+      this.relationshipBindings =
+        update.relationshipBindings || this.relationshipBindings;
+      this.relationshipCompletionItems = this.buildCompletionItemsFromData(
+        this.namespaceMap,
+        this.relationshipBindings.map((binding) => ({
+          iri: binding.relationship.value,
+          count: binding.count.value,
+        })),
+        CompletionItemKind.Field
+      );
+    }
+    if (update.typeBindings || update.namespaces) {
+      this.typeBindings = update.typeBindings || this.typeBindings;
+      this.typeCompletionItems = this.buildCompletionItemsFromData(
+        this.namespaceMap,
+        this.typeBindings.map((binding) => ({
+          iri: binding.type.value,
+          count: binding.count.value,
+        })),
+        CompletionItemKind.EnumMember
+      );
+    }
+    if (update.graphQLValueTypeBindings || update.namespaces) {
+      this.graphQLValueTypeBindings =
+        update.graphQLValueTypeBindings || this.graphQLValueTypeBindings;
+      this.graphQLTypeCompletionItems = this.buildGraphQLTypeCompletionItems(
+        this.namespaceMap,
+        this.graphQLValueTypeBindings
+      );
+    }
+  }
+
+  buildCompletionItemsFromData(
+    namespaceMap: { [alias: string]: string },
+    irisAndCounts: { iri: string; count: string }[],
+    kind: CompletionItemKind
+  ): CompletionItem[] {
+    // GraphQL cannot idenfy non-prefixed IRIs as fields, so we want to ignore non-prefixed bindings
+    const prefixed: CompletionItem[] = [];
+
+    if (!Object.keys(namespaceMap).length) {
+      return prefixed;
+    }
+
+    irisAndCounts.forEach(({ iri, count }) => {
+      const prefixedIri = abbreviatePrefixObj(iri, namespaceMap);
+      if (prefixedIri !== iri) {
+        // in GraphQL, the `:` character cannot be used in field names so instead Stardog uses the `_` character
+        const graphQLIri = prefixedIri.replace(/\:/g, '_');
+        const alphaSortTextForCount =
+          ARBITRARILY_LARGE_NUMBER - parseInt(count, 10);
+        prefixed.push({
+          // namespaces with a blank prefix do not require the leading underscore
+          // so a prefixed iri of `:Type` can be written as `Type` instead of `_Type`
+          label: graphQLIri.slice(graphQLIri.startsWith('_') ? 1 : 0),
+          kind,
+
+          // take the difference of an arbitrarily large number and the iri's count which
+          // allows us to invert the sort order of the items to be highest count number first
+          sortText: `${kind}-${alphaSortTextForCount}${graphQLIri}`,
+
+          // concatenate both the full iri and the prefixed iri so that users who begin
+          // typing the full or prefixed iri will see the graphql alternative
+          filterText: `${iri}${prefixedIri}${graphQLIri}`,
+          detail: `${count} occurrences`,
+        });
+      }
+    });
+
+    return prefixed;
+  }
+
+  buildGraphQLTypeCompletionItems(
+    namespaceMap: { [alias: string]: string },
+    typesAndIris: { type: string; iri: string }[]
+  ): CompletionItem[] {
+    return GRAPHQL_VALUE_TYPES.map((graphQLType) => {
+      const completionItem: CompletionItem = {
+        label: graphQLType,
+        kind: CompletionItemKind.Enum,
+      };
+      const typeAndIri = typesAndIris.find((t) => t.type === graphQLType);
+      if (typeAndIri && Object.keys(namespaceMap).length) {
+        const { iri } = typeAndIri;
+        const prefixedIri = abbreviatePrefixObj(iri, namespaceMap);
+        completionItem.filterText = `${graphQLType}<${iri}>${prefixedIri}`;
+      }
+      return completionItem;
+    });
   }
 
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
@@ -145,10 +267,55 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     // Completions are collected in this way (pushing, etc.) for
     // speed/complexity reasons (fewer map/filter/flatten operations needed).
     const allCompletions: CompletionItem[] = [];
+
+    let hasFieldCandidate = false;
+    let hasNamedTypeCandidate = false;
+    let includeTypeCompletions = false;
+    let includeGraphQLTypeCompletions = false;
+
     candidates.forEach((candidate) => {
       // Don't include punctuation in completion results.
       if (is(candidate.nextTokenType, 'Punctuator')) {
         return;
+      }
+
+      // for name tokens, check the context and then use the name completion items
+      if (isNameTokenImmediatelyBeforeCursor) {
+        const lastIdx = candidate.ruleStack.length - 1;
+        if (candidate.ruleStack[lastIdx] === 'Field') {
+          hasFieldCandidate = true;
+        } else if (candidate.ruleStack[lastIdx] === 'NamedType') {
+          hasNamedTypeCandidate = true;
+          switch (candidate.ruleStack[lastIdx - 1]) {
+            case 'TypeCondition':
+            case 'ImplementsInterfaces':
+            case 'UnionMemeberTypes': {
+              includeTypeCompletions = true;
+              break;
+            }
+            case 'Type': {
+              for (let idx = lastIdx - 2; idx >= 0; idx--) {
+                // variables can only be input types (not type bindings)
+                if (candidate.ruleStack[idx] === 'VariableDefinition') {
+                  includeGraphQLTypeCompletions = true;
+                  break;
+                }
+                // field definitions found in interface type extensions
+                // and input definitions can be composed of either graphql
+                // types or the type bindings
+                if (
+                  candidate.ruleStack[idx] === 'FieldDefinition' ||
+                  candidate.ruleStack[idx] === 'InputValueDefinition'
+                ) {
+                  includeTypeCompletions = true;
+                  includeGraphQLTypeCompletions = true;
+                  break;
+                }
+              }
+              break;
+            }
+          }
+        }
       }
 
       const completionItem = this.getCompletionItem(
@@ -180,6 +347,46 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         });
       }
     });
+
+    const hasOnlyFieldCandidate = hasFieldCandidate && !hasNamedTypeCandidate;
+    // show relationship completions if the only candidate is a field
+    if (hasOnlyFieldCandidate) {
+      allCompletions.push(
+        ...this.relationshipCompletionItems.map((item) => ({
+          ...item,
+          textEdit: replaceTokenAtCursor(item.label, {
+            start: tokenBeforeCursor.startOffset,
+            end: cursorOffset,
+          }),
+        }))
+      );
+    }
+    // show type completions if the only candidate is a field
+    // or the namedType candidate includes types
+    if (hasOnlyFieldCandidate || includeTypeCompletions) {
+      allCompletions.push(
+        ...this.typeCompletionItems.map((item) => ({
+          ...item,
+          textEdit: replaceTokenAtCursor(item.label, {
+            start: tokenBeforeCursor.startOffset,
+            end: cursorOffset,
+          }),
+        }))
+      );
+    }
+    // show graphql type completions if there are namedType
+    // candidate and they include the graphql types
+    if (hasNamedTypeCandidate && includeGraphQLTypeCompletions) {
+      allCompletions.push(
+        ...this.graphQLTypeCompletionItems.map((item) => ({
+          ...item,
+          textEdit: replaceTokenAtCursor(item.label, {
+            start: tokenBeforeCursor.startOffset,
+            end: cursorOffset,
+          }),
+        }))
+      );
+    }
 
     return uniqBy(allCompletions, 'label');
   }

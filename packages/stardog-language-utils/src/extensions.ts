@@ -26,4 +26,8 @@ export type SparqlCompletionData = {
       value: string;
     };
   }[];
+  graphQLValueTypeBindings?: {
+    type: string;
+    iri: string;
+  }[];
 };
