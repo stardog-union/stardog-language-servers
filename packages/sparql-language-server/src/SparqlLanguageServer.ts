@@ -32,7 +32,7 @@ import {
   SparqlCompletionData,
   AbstractLanguageServer,
   CompletionCandidate,
-  commonCompletionItems,
+  getCommonCompletionItemsGivenNamespaces,
   makeCompletionItemFromPrefixedNameAndNamespaceIri,
   ARBITRARILY_LARGE_NUMBER,
 } from 'stardog-language-utils';
@@ -237,7 +237,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
           replacement: item.label,
         }),
       })),
-      ...commonCompletionItems.properties.map((item) => ({
+      ...getCommonCompletionItemsGivenNamespaces(
+        this.namespaceMap || {}
+      ).properties.map((item) => ({
         ...item,
         textEdit: this.replaceTokenAtCursor({
           document,
@@ -258,7 +260,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
           replacement: item.label,
         }),
       })),
-      ...commonCompletionItems.classes.map((item) => ({
+      ...getCommonCompletionItemsGivenNamespaces(
+        this.namespaceMap || {}
+      ).classes.map((item) => ({
         ...item,
         textEdit: this.replaceTokenAtCursor({
           document,
