@@ -1,5 +1,6 @@
 import { makeCompletionItemFromPrefixedNameAndNamespaceIri } from './language-services';
 import { CompletionItem } from 'vscode-languageserver';
+import memoize from 'memoize-one';
 
 interface CompletionDatum {
   namespaceIri: string;
@@ -191,39 +192,50 @@ const xsd: CompletionDatum = {
   properties: [],
 };
 
-const commonCompletions = {
+const commonCompletionData = {
   owl,
   rdf,
   rdfs,
   xsd,
 };
 
-export const commonCompletionItems = Object.keys(commonCompletions).reduce(
-  (acc, key) => {
-    const { namespaceIri, classes = [], properties = [] } = commonCompletions[
-      key
-    ] as CompletionDatum;
-    const classCompletions: CompletionItem[] = classes.map((className) =>
-      makeCompletionItemFromPrefixedNameAndNamespaceIri(
-        `${key}:${className}`,
-        namespaceIri
-      )
-    );
-    const propertyCompletions: CompletionItem[] = properties.map(
-      (propertyName) =>
-        makeCompletionItemFromPrefixedNameAndNamespaceIri(
-          `${key}:${propertyName}`,
-          namespaceIri
-        )
-    );
+export const getCommonCompletionItemsGivenNamespaces = memoize(
+  (namespaceMap) => {
+    return Object.keys(commonCompletionData).reduce(
+      (acc, key) => {
+        const {
+          namespaceIri,
+          classes = [],
+          properties = [],
+        } = commonCompletionData[key] as CompletionDatum;
+        // Allow namespaceMap to override standard prefixes for these namespaces:
+        const prefix =
+          Object.keys(namespaceMap).find(
+            (nsPrefix) => namespaceMap[nsPrefix] === namespaceIri
+          ) || key;
+        const classCompletions: CompletionItem[] = classes.map((className) =>
+          makeCompletionItemFromPrefixedNameAndNamespaceIri(
+            `${prefix}:${className}`,
+            namespaceIri
+          )
+        );
+        const propertyCompletions: CompletionItem[] = properties.map(
+          (propertyName) =>
+            makeCompletionItemFromPrefixedNameAndNamespaceIri(
+              `${prefix}:${propertyName}`,
+              namespaceIri
+            )
+        );
 
-    return {
-      classes: [...acc.classes, ...classCompletions],
-      properties: [...acc.properties, ...propertyCompletions],
-    };
-  },
-  {
-    classes: [] as CompletionItem[],
-    properties: [] as CompletionItem[],
+        return {
+          classes: [...acc.classes, ...classCompletions],
+          properties: [...acc.properties, ...propertyCompletions],
+        };
+      },
+      {
+        classes: [] as CompletionItem[],
+        properties: [] as CompletionItem[],
+      }
+    );
   }
 );
