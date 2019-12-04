@@ -8,6 +8,7 @@ import {
   InitializeParams,
   IConnection,
   Range,
+  TextDocument,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
@@ -31,11 +32,12 @@ import {
   SparqlCompletionData,
   AbstractLanguageServer,
   CompletionCandidate,
+  commonCompletionItems,
+  makeCompletionItemFromPrefixedNameAndNamespaceIri,
+  ARBITRARILY_LARGE_NUMBER,
 } from 'stardog-language-utils';
 import uniqBy from 'lodash.uniqby';
 import { IToken } from 'chevrotain';
-
-const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -79,7 +81,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
         completionProvider: {
-          triggerCharacters: ['<', ':', '?', '$'],
+          triggerCharacters: ['<', '?', '$'],
         },
         hoverProvider: true,
       },
@@ -137,17 +139,14 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       }
       if (prefixedIri !== iri) {
         prefixed.push({
-          label: prefixedIri,
-          kind: CompletionItemKind.Field,
-
+          ...makeCompletionItemFromPrefixedNameAndNamespaceIri(
+            prefixedIri,
+            iri
+          ),
           // here we take the difference of an arbitrarily large number and the iri's count which allows us to invert the
           // sort order of the items to be highest count number first. "00" is appended to ensure precedence over full iri,
           // suggestions
           sortText: `00${alphaSortTextForCount}${prefixedIri}`,
-
-          // here we concatenate both the full iri and the prefixed iri so that users who begin typing
-          // the full iri will see the prefixed alternative
-          filterText: `<${iri}>${prefixedIri}`,
           detail: `${count} occurrences`,
         });
       }
@@ -198,6 +197,76 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         });
       }
     });
+  }
+
+  replaceTokenAtCursor({
+    document,
+    replacement,
+    replacementRange,
+    tokenAtCursor,
+  }: {
+    document: TextDocument;
+    replacement: string;
+    replacementRange?: CompletionCandidate['replacementRange'];
+    tokenAtCursor: IToken;
+  }): TextEdit {
+    let textEditRange: Range;
+
+    if (replacementRange) {
+      textEditRange = {
+        start: document.positionAt(replacementRange.start),
+        end: document.positionAt(replacementRange.end),
+      };
+    } else {
+      textEditRange = {
+        start: document.positionAt(tokenAtCursor.startOffset),
+        end: document.positionAt(tokenAtCursor.endOffset + 1),
+      };
+    }
+
+    return TextEdit.replace(textEditRange, replacement);
+  }
+
+  getRelationshipCompletions(document: TextDocument, tokenAtCursor: IToken) {
+    return [
+      ...this.relationshipCompletionItems.map((item) => ({
+        ...item,
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: item.label,
+        }),
+      })),
+      ...commonCompletionItems.properties.map((item) => ({
+        ...item,
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: item.label,
+        }),
+      })),
+    ];
+  }
+
+  getClassCompletions(document: TextDocument, tokenAtCursor: IToken) {
+    return [
+      ...this.typeCompletionItems.map((item) => ({
+        ...item,
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: item.label,
+        }),
+      })),
+      ...commonCompletionItems.classes.map((item) => ({
+        ...item,
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: item.label,
+        }),
+      })),
+    ];
   }
 
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
@@ -259,27 +328,6 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       });
     }
 
-    const replaceTokenAtCursor = (
-      replacement: string,
-      replacementRange?: CompletionCandidate['replacementRange']
-    ): TextEdit => {
-      let textEditRange: Range;
-
-      if (replacementRange) {
-        textEditRange = {
-          start: document.positionAt(replacementRange.start),
-          end: document.positionAt(replacementRange.end),
-        };
-      } else {
-        textEditRange = {
-          start: document.positionAt(tokenAtCursor.startOffset),
-          end: document.positionAt(tokenAtCursor.endOffset + 1),
-        };
-      }
-
-      return TextEdit.replace(textEditRange, replacement);
-    };
-
     const variableCompletions: CompletionItem[] = vars.map((variable) => {
       return {
         label: variable,
@@ -287,7 +335,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         sortText: candidates.some((tkn) => isVar(tkn.nextTokenType.tokenName))
           ? `1${variable}` // number prefix used to force ordering of suggestions to user
           : null,
-        textEdit: replaceTokenAtCursor(variable),
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: variable,
+        }),
       };
     });
 
@@ -305,7 +357,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         )
           ? `2${label}` // number prefix used to force ordering of suggestions to user
           : null,
-        textEdit: replaceTokenAtCursor(prefix),
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: prefix,
+        }),
       };
     });
 
@@ -317,7 +373,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       )
         ? `2${local}` // number prefix used to force ordering of suggestions to user
         : null,
-      textEdit: replaceTokenAtCursor(local),
+      textEdit: this.replaceTokenAtCursor({
+        document,
+        tokenAtCursor,
+        replacement: local,
+      }),
     }));
 
     const iriCompletions: CompletionItem[] = iris.map((iri) => ({
@@ -326,7 +386,11 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       sortText: candidates.some((tkn) => isIriRef(tkn.nextTokenType.tokenName))
         ? `2${iri}` // number prefix used to force ordering of suggestions to user
         : null,
-      textEdit: replaceTokenAtCursor(iri),
+      textEdit: this.replaceTokenAtCursor({
+        document,
+        tokenAtCursor,
+        replacement: iri,
+      }),
     }));
 
     // Unlike the previous completion types, sparqlKeywords only appear in dropdown if they're valid
@@ -345,10 +409,12 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       return {
         label: keywordString,
         kind: CompletionItemKind.Keyword,
-        textEdit: replaceTokenAtCursor(
-          keywordString,
-          completionCandidate.replacementRange
-        ),
+        textEdit: this.replaceTokenAtCursor({
+          document,
+          tokenAtCursor,
+          replacement: keywordString,
+          replacementRange: completionCandidate.replacementRange,
+        }),
       };
     });
 
@@ -378,21 +444,15 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       });
     });
 
-    if (this.relationshipCompletionItems.length && shouldIncludeRelationships) {
+    if (shouldIncludeRelationships) {
       finalCompletions.push(
-        ...this.relationshipCompletionItems.map((item) => ({
-          ...item,
-          textEdit: replaceTokenAtCursor(item.label),
-        }))
+        ...this.getRelationshipCompletions(document, tokenAtCursor)
       );
     }
 
-    if (this.typeCompletionItems.length && shouldIncludeTypes) {
+    if (shouldIncludeTypes) {
       finalCompletions.push(
-        ...this.typeCompletionItems.map((item) => ({
-          ...item,
-          textEdit: replaceTokenAtCursor(item.label),
-        }))
+        ...this.getClassCompletions(document, tokenAtCursor)
       );
     }
 
