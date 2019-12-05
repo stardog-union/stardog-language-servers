@@ -1,5 +1,7 @@
 import { IToken, TokenType } from 'millan';
 import uniqBy from 'lodash.uniqby';
+import { CompletionItemKind } from 'vscode-languageserver';
+import { ARBITRARILY_LARGE_NUMBER } from './constants';
 
 export const regexPatternToString = (pattern: RegExp | string) =>
   pattern
@@ -41,3 +43,20 @@ export const getTokenTypesForCategory = (
         )
     )
   );
+
+export const makeCompletionItemFromPrefixedNameAndNamespaceIri = (
+  prefixedName: string,
+  namespaceIri: string
+) => ({
+  label: prefixedName,
+  kind: CompletionItemKind.Field,
+
+  // here we take the difference of an arbitrarily large number and the iri's count which allows us to invert the
+  // sort order of the items to be highest count number first. "00" is appended to ensure precedence over full iri,
+  // suggestions
+  sortText: `00${ARBITRARILY_LARGE_NUMBER}${prefixedName}`,
+
+  // here we concatenate both the full iri and the prefixed iri so that users who begin typing
+  // the full iri will see the prefixed alternative
+  filterText: `<${namespaceIri}>${prefixedName}`,
+});

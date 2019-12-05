@@ -57,6 +57,7 @@
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniqby": "^4.7.0",
+    "memoize-one": "^5.1.1",
     "millan": "^3.1.0",
     "stardog-language-utils": "^1.8.0",
     "vscode-languageserver": "^5.2.1"

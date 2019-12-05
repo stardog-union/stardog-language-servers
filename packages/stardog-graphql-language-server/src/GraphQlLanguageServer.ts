@@ -26,10 +26,10 @@ import {
   SparqlCompletionData,
   AbstractLanguageServer,
   CompletionCandidate,
+  ARBITRARILY_LARGE_NUMBER,
 } from 'stardog-language-utils';
 import { ISemanticError, TokenType } from 'millan';
 
-const ARBITRARILY_LARGE_NUMBER = 100000000000000;
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
 const GRAPHQL_VALUE_TYPES = ['Int', 'Float', 'String', 'Boolean', 'Null'];
 
