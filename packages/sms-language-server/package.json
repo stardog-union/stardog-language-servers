@@ -1,6 +1,6 @@
 {
   "name": "sms-language-server",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SmsLanguageServer.d.ts",
@@ -58,8 +58,8 @@
   ],
   "dependencies": {
     "class-autobind-decorator": "^3.0.1",
-    "millan": "^3.2.1",
-    "stardog-language-utils": "^1.9.0",
+    "millan": "^3.2.2",
+    "stardog-language-utils": "^1.9.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {

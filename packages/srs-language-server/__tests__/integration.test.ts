@@ -15,6 +15,7 @@ import {
   Position,
 } from 'vscode-languageserver-protocol';
 import { ChildProcess } from 'child_process';
+import { ModeString } from 'millan';
 
 const pathToServer = resolve(join(__dirname, '..', 'src', 'cli.ts'));
 
@@ -30,7 +31,14 @@ describe('srs language server', () => {
     1,
     'IF {  ?a :b+ :c . }'
   );
-  beforeAll(async () => {
+  const textDocumentWithEdgeProperties = TextDocumentItem.create(
+    '/foo-edge.rq',
+    'srs',
+    1,
+    '<< :something a :Something >> a :Statement'
+  );
+
+  const setup = async (mode: ModeString = 'standard') => {
     const processAndConn = getStdioConnection(pathToServer);
     connection = processAndConn.connection;
     cp = processAndConn.child_process;
@@ -41,16 +49,22 @@ describe('srs language server', () => {
       processId: process.pid,
       rootUri: '/',
       workspaceFolders: null,
+      initializationOptions: {
+        mode,
+      }
     });
     await connection.sendNotification(InitializedNotification.type);
     return connection.sendNotification(DidOpenTextDocumentNotification.type, {
       textDocument,
     });
-  });
+  };
+
   afterAll(() => {
     cp.kill();
   });
+
   it('publishes diagnostics', async (done) => {
+    await setup();
     connection.onNotification(PublishDiagnosticsNotification.type, (params) => {
       expect(params.diagnostics).toMatchObject([
         {
@@ -72,12 +86,25 @@ describe('srs language server', () => {
       done();
     });
   });
-  it('publishes hover messages', async (done) => {
+
+  it('publishes hover messages', async () => {
+    await setup();
     const res = await connection.sendRequest(HoverRequest.type, {
       textDocument,
       position: Position.create(0, 1),
     });
     expect(res.contents).toBe('```\nIfClause\n```');
-    done();
+  });
+
+  it('can operate in \'stardog\' mode', async () => {
+    await setup('stardog');
+    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
+      textDocument: textDocumentWithEdgeProperties,
+    });
+    const res = await connection.sendRequest(HoverRequest.type, {
+      textDocument: textDocumentWithEdgeProperties,
+      position: Position.create(0, 1),
+    });
+    expect(res.contents).toBe('```\nEmbeddedTriplePattern\n```');
   });
 });
