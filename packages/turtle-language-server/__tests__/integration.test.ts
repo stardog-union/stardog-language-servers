@@ -51,7 +51,7 @@ describe('turtle language server', () => {
       workspaceFolders: null,
       initializationOptions: {
         mode,
-      }
+      },
     });
     await connection.sendNotification(InitializedNotification.type);
     return connection.sendNotification(DidOpenTextDocumentNotification.type, {
@@ -69,8 +69,8 @@ describe('turtle language server', () => {
       expect(params.diagnostics).toMatchObject([
         {
           message:
-            "\tExpected one of the following:\n IRIREF\n PNAME_LN\n PNAME_NS\n BLANK_NODE_LABEL\n ANON e.g. []\n '('\n '['\n STRING_LITERAL_QUOTE\n STRING_LITERAL_SINGLE_QUOTE\n STRING_LITERAL_LONG_SINGLE_QUOTE\n STRING_LITERAL_LONG_QUOTE\n INTEGER\n DECIMAL\n DOUBLE\n 'true'\n 'false'",
-          source: 'object',
+            "\tExpected one of the following:\n IRIREF\n PNAME_LN\n PNAME_NS\n BLANK_NODE_LABEL\n ANON e.g. []\n '('\n '['\n STRING_LITERAL_QUOTE\n STRING_LITERAL_SINGLE_QUOTE\n STRING_LITERAL_LONG_SINGLE_QUOTE\n STRING_LITERAL_LONG_QUOTE\n INTEGER\n DECIMAL\n DOUBLE\n 'true'\n 'false'\n '{'",
+          source: 'predicateObjectList',
           severity: 1,
           range: {
             start: {
@@ -97,7 +97,7 @@ describe('turtle language server', () => {
     expect(res.contents).toBe('```\niri\n```');
   });
 
-  it('can operate in \'stardog\' mode', async () => {
+  it("can operate in 'stardog' mode", async () => {
     await setup('stardog');
     await connection.sendNotification(DidOpenTextDocumentNotification.type, {
       textDocument: textDocumentWithEdgeProperties,
