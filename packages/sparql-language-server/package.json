@@ -1,6 +1,6 @@
 {
   "name": "sparql-language-server",
-  "version": "3.0.2",
+  "version": "3.1.1",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/SparqlLanguageServer.ts",
@@ -59,7 +59,7 @@
     "lodash.uniqby": "^4.7.0",
     "memoize-one": "^5.1.1",
     "millan": "^4.0.1",
-    "stardog-language-utils": "^1.9.2",
+    "stardog-language-utils": "^1.10.1",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
