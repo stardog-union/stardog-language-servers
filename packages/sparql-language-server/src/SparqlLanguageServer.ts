@@ -9,6 +9,8 @@ import {
   IConnection,
   Range,
   TextDocument,
+  FoldingRangeRequestParam,
+  FoldingRange,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
@@ -58,6 +60,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
 
   onInitialization(params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onFoldingRanges(this.handleFoldingRanges);
     this.connection.onNotification(
       LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
       this.handleUpdateCompletionData
@@ -83,6 +86,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         completionProvider: {
           triggerCharacters: ['<', '?', '$'],
         },
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };
@@ -271,6 +275,15 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         }),
       })),
     ];
+  }
+
+  handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
+    const { uri } = params.textDocument;
+    const document = this.documents.get(uri);
+
+    if (!document) {
+      return [];
+    }
   }
 
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
