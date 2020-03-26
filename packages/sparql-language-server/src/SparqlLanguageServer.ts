@@ -277,13 +277,97 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     ];
   }
 
+  getIndentFoldingRange(lines, lineIdx) {
+    const start = lineIdx + 1;
+    const startLine = lines[lineIdx];
+    const startIndentLevel = startLine.length - startLine.trimLeft().length;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+
+      if (indentLevel <= startIndentLevel) {
+        if (i === lineIdx + 1) {
+          return null;
+        }
+        return {
+          start,
+          end: i,
+          kind: 'indent',
+        };
+      }
+    }
+    return {
+      start,
+      end: lines.length,
+      kind: 'indent',
+    };
+  }
+
+  getPrefixFoldingRange(lines, lineIdx) {
+    const start = lineIdx + 1;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase().trimLeft();
+      if (
+        !lowerCaseLine.startsWith('prefix') &&
+        !lowerCaseLine.startsWith('@prefix')
+      ) {
+        if (i === lineIdx + 1) {
+          console.log(i);
+          return null;
+        }
+        return {
+          start,
+          end: i,
+          kind: 'prefix',
+        };
+      }
+    }
+    return null;
+  }
+
   handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
+    const ranges = [];
 
     if (!document) {
-      return [];
+      return ranges;
     }
+
+    const lines = document.getText().split(/\r?\n/);
+    let lineIdx = 0;
+    while (lineIdx < lines.length - 1) {
+      const lowerCaseLine = lines[lineIdx].toLowerCase();
+      const lowerCaseNextLine = lines[lineIdx + 1].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const trimmedNextLine = lowerCaseNextLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+      const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
+      if (
+        trimmedLine.startsWith('prefix') ||
+        trimmedLine.startsWith('@prefix')
+      ) {
+        const range = this.getPrefixFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+          lineIdx = range.end;
+        } else {
+          lineIdx++;
+        }
+      } else {
+        if (indentNextLevel > indentLevel) {
+          const range = this.getIndentFoldingRange(lines, lineIdx);
+          if (range) {
+            ranges.push(range);
+          }
+        }
+        lineIdx++;
+      }
+    }
+    return ranges;
   }
 
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
