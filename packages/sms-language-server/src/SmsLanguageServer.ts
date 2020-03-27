@@ -1,4 +1,17 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  CompletionItem,
+  CompletionItemKind,
+  FoldingRangeRequestParam,
+  FoldingRange,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  InsertTextFormat,
+  Range,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
+} from 'vscode-languageserver';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   errorMessageProvider,
@@ -9,18 +22,20 @@ import { SmsParser } from 'millan';
 
 @autoBindMethods
 export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(connection, new SmsParser({ errorMessageProvider }));
   }
 
-  onInitialization(_params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(_params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onFoldingRanges(this.handleFoldingRanges);
 
     return {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
         hoverProvider: true,
+        foldingRangeProvider: true,
         completionProvider: {
           triggerCharacters: ['<', ':', '?', '$'],
         },
@@ -29,7 +44,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<AbstractLanguageServer<SmsParser>['parseDocument']>
   ): void {
     const { uri } = document;
@@ -53,9 +68,94 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
     });
   }
 
-  handleCompletion(
-    params: lsp.TextDocumentPositionParams
-  ): lsp.CompletionItem[] {
+  getIndentFoldingRange(lines, lineIdx) {
+    const start = lineIdx;
+    const startingLine = lines[lineIdx];
+    const startIndentLevel =
+      startingLine.length - startingLine.trimLeft().length;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+
+      if (indentLevel <= startIndentLevel) {
+        return {
+          startLine: start,
+          endLine: i - 1,
+          kind: 'indent',
+        };
+      }
+    }
+    return {
+      startLine: start,
+      endLine: lines.length - 1,
+      kind: 'indent',
+    };
+  }
+
+  getPrefixFoldingRange(lines, lineIdx) {
+    const startLine = lineIdx;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase().trimLeft();
+      if (
+        !lowerCaseLine.startsWith('prefix') &&
+        !lowerCaseLine.startsWith('@prefix')
+      ) {
+        return {
+          startLine,
+          endLine: i - 1,
+          kind: 'prefix',
+        };
+      }
+    }
+    return null;
+  }
+
+  handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
+    const { uri } = params.textDocument;
+    const document = this.documents.get(uri);
+    const ranges: FoldingRange[] = [];
+
+    if (!document) {
+      return ranges;
+    }
+
+    const lines = document.getText().split(/\r?\n/);
+    let lineIdx = 0;
+    while (lineIdx < lines.length - 1) {
+      const lowerCaseLine = lines[lineIdx].toLowerCase();
+      const lowerCaseNextLine = lines[lineIdx + 1].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const trimmedNextLine = lowerCaseNextLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+      const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
+      if (
+        (trimmedLine.startsWith('prefix') ||
+          trimmedLine.startsWith('@prefix')) &&
+        (trimmedNextLine.startsWith('prefix') ||
+          trimmedNextLine.startsWith('@prefix'))
+      ) {
+        const range = this.getPrefixFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+          lineIdx = range.endLine;
+        } else {
+          lineIdx++;
+        }
+      } else if (indentNextLevel > indentLevel) {
+        const range = this.getIndentFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+        }
+      }
+      lineIdx++;
+    }
+    return ranges;
+  }
+
+  handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
     const cursorOffset = document.offsetAt(params.position);
@@ -105,13 +205,13 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
       return [
         {
           label: 'basicSMS2Mapping',
-          kind: lsp.CompletionItemKind.Enum,
+          kind: CompletionItemKind.Enum,
           detail: 'Create a basic fill-in-the-blanks SMS2 mapping',
           documentation:
             'Inserts a basic mapping in Stardog Mapping Syntax 2 (SMS2) with tabbing functionality and content assistance. For more documentation of SMS2, check out "Help" --> "Stardog Docs".',
-          insertTextFormat: lsp.InsertTextFormat.Snippet,
-          textEdit: lsp.TextEdit.replace(
-            lsp.Range.create(
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: TextEdit.replace(
+            Range.create(
               document.positionAt(cursorOffset - 1),
               document.positionAt(cursorOffset - 1)
             ),

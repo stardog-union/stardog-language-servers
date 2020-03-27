@@ -1,4 +1,12 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  FoldingRange,
+  FoldingRangeRequestParam,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  TextDocument,
+  TextDocumentChangeEvent,
+} from 'vscode-languageserver';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   AbstractLanguageServer,
@@ -10,11 +18,12 @@ import { TrigParser, ModeString } from 'millan';
 export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
   private mode: ModeString = 'standard';
 
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(connection, new TrigParser({ errorMessageProvider }));
   }
 
-  onInitialization(params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(params: InitializeParams): InitializeResult {
+    this.connection.onFoldingRanges(this.handleFoldingRanges);
     if (
       params.initializationOptions &&
       (params.initializationOptions.mode === 'stardog' ||
@@ -27,13 +36,14 @@ export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<
       AbstractLanguageServer<TrigParser>['parseDocument']
     >
@@ -59,8 +69,95 @@ export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
     });
   }
 
+  getIndentFoldingRange(lines, lineIdx) {
+    const start = lineIdx;
+    const startingLine = lines[lineIdx];
+    const startIndentLevel =
+      startingLine.length - startingLine.trimLeft().length;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+
+      if (indentLevel <= startIndentLevel) {
+        return {
+          startLine: start,
+          endLine: i - 1,
+          kind: 'indent',
+        };
+      }
+    }
+    return {
+      startLine: start,
+      endLine: lines.length - 1,
+      kind: 'indent',
+    };
+  }
+
+  getPrefixFoldingRange(lines, lineIdx) {
+    const startLine = lineIdx;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase().trimLeft();
+      if (
+        !lowerCaseLine.startsWith('prefix') &&
+        !lowerCaseLine.startsWith('@prefix')
+      ) {
+        return {
+          startLine,
+          endLine: i - 1,
+          kind: 'prefix',
+        };
+      }
+    }
+    return null;
+  }
+
+  handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
+    const { uri } = params.textDocument;
+    const document = this.documents.get(uri);
+    const ranges: FoldingRange[] = [];
+
+    if (!document) {
+      return ranges;
+    }
+
+    const lines = document.getText().split(/\r?\n/);
+    let lineIdx = 0;
+    while (lineIdx < lines.length - 1) {
+      const lowerCaseLine = lines[lineIdx].toLowerCase();
+      const lowerCaseNextLine = lines[lineIdx + 1].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const trimmedNextLine = lowerCaseNextLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+      const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
+      if (
+        (trimmedLine.startsWith('prefix') ||
+          trimmedLine.startsWith('@prefix')) &&
+        (trimmedNextLine.startsWith('prefix') ||
+          trimmedNextLine.startsWith('@prefix'))
+      ) {
+        const range = this.getPrefixFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+          lineIdx = range.endLine;
+        } else {
+          lineIdx++;
+        }
+      } else if (indentNextLevel > indentLevel) {
+        const range = this.getIndentFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+        }
+      }
+      lineIdx++;
+    }
+    return ranges;
+  }
+
   // Override to allow parsing modes.
-  parseDocument(document: lsp.TextDocument) {
+  parseDocument(document: TextDocument) {
     const content = document.getText();
     const { cst, errors, ...otherParseData } = this.parser.parse(
       content,

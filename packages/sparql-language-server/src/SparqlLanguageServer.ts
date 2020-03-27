@@ -1,16 +1,16 @@
 import {
-  InitializeResult,
-  TextDocumentPositionParams,
-  TextDocumentChangeEvent,
   CompletionItem,
   CompletionItemKind,
-  TextEdit,
-  InitializeParams,
+  FoldingRange,
+  FoldingRangeRequestParam,
   IConnection,
+  InitializeParams,
+  InitializeResult,
   Range,
   TextDocument,
-  FoldingRangeRequestParam,
-  FoldingRange,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
