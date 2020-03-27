@@ -278,9 +278,10 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
   }
 
   getIndentFoldingRange(lines, lineIdx) {
-    const start = lineIdx + 1;
-    const startLine = lines[lineIdx];
-    const startIndentLevel = startLine.length - startLine.trimLeft().length;
+    const start = lineIdx;
+    const startingLine = lines[lineIdx];
+    const startIndentLevel =
+      startingLine.length - startingLine.trimLeft().length;
 
     for (let i = lineIdx + 1; i < lines.length; i++) {
       const lowerCaseLine = lines[i].toLowerCase();
@@ -288,25 +289,22 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       const indentLevel = lowerCaseLine.length - trimmedLine.length;
 
       if (indentLevel <= startIndentLevel) {
-        if (i === lineIdx + 1) {
-          return null;
-        }
         return {
-          start,
-          end: i,
+          startLine: start,
+          endLine: i - 1,
           kind: 'indent',
         };
       }
     }
     return {
-      start,
-      end: lines.length,
+      startLine: start,
+      endLine: lines.length - 1,
       kind: 'indent',
     };
   }
 
   getPrefixFoldingRange(lines, lineIdx) {
-    const start = lineIdx + 1;
+    const startLine = lineIdx;
 
     for (let i = lineIdx + 1; i < lines.length; i++) {
       const lowerCaseLine = lines[i].toLowerCase().trimLeft();
@@ -314,13 +312,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         !lowerCaseLine.startsWith('prefix') &&
         !lowerCaseLine.startsWith('@prefix')
       ) {
-        if (i === lineIdx + 1) {
-          console.log(i);
-          return null;
-        }
         return {
-          start,
-          end: i,
+          startLine,
+          endLine: i - 1,
           kind: 'prefix',
         };
       }
@@ -331,7 +325,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
   handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
-    const ranges = [];
+    const ranges: FoldingRange[] = [];
 
     if (!document) {
       return ranges;
@@ -347,25 +341,25 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       const indentLevel = lowerCaseLine.length - trimmedLine.length;
       const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
       if (
-        trimmedLine.startsWith('prefix') ||
-        trimmedLine.startsWith('@prefix')
+        (trimmedLine.startsWith('prefix') ||
+          trimmedLine.startsWith('@prefix')) &&
+        (trimmedNextLine.startsWith('prefix') ||
+          trimmedNextLine.startsWith('@prefix'))
       ) {
         const range = this.getPrefixFoldingRange(lines, lineIdx);
         if (range) {
           ranges.push(range);
-          lineIdx = range.end;
+          lineIdx = range.endLine;
         } else {
           lineIdx++;
         }
-      } else {
-        if (indentNextLevel > indentLevel) {
-          const range = this.getIndentFoldingRange(lines, lineIdx);
-          if (range) {
-            ranges.push(range);
-          }
+      } else if (indentNextLevel > indentLevel) {
+        const range = this.getIndentFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
         }
-        lineIdx++;
       }
+      lineIdx++;
     }
     return ranges;
   }
