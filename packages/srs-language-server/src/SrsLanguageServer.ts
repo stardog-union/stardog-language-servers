@@ -143,7 +143,7 @@ export class SrsLanguageServer extends AbstractLanguageServer<SrsParser> {
         } else {
           lineIdx++;
         }
-      } else if (indentNextLevel > indentLevel) {
+      } else if (trimmedLine && indentNextLevel > indentLevel) {
         const range = this.getIndentFoldingRange(lines, lineIdx);
         if (range) {
           ranges.push(range);
