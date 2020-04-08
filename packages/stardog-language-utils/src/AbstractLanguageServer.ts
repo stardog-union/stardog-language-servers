@@ -1,4 +1,21 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  ErrorCodes,
+  FoldingRange,
+  FoldingRangeRequestParam,
+  Hover,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  Range,
+  ResponseError,
+  StarRequestHandler,
+  TextDocument,
+  TextDocuments,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+} from 'vscode-languageserver';
 import { Parser, IToken } from 'chevrotain';
 import { IStardogParser, isCstNode, traverse, ISemanticError } from 'millan';
 import { ParseStateManager, getParseStateManager } from './parseState';
@@ -6,14 +23,14 @@ import { ParseStateManager, getParseStateManager } from './parseState';
 export abstract class AbstractLanguageServer<
   T extends Parser & IStardogParser
 > {
-  protected readonly documents: lsp.TextDocuments;
+  protected readonly documents: TextDocuments;
   protected readonly parseStateManager: ParseStateManager;
 
   constructor(
-    protected readonly connection: lsp.IConnection,
+    protected readonly connection: IConnection,
     protected readonly parser: T
   ) {
-    this.documents = new lsp.TextDocuments();
+    this.documents = new TextDocuments();
     this.parseStateManager = getParseStateManager();
     this.documents.listen(connection);
     this.documents.onDidChangeContent(this.handleContentChange.bind(this));
@@ -26,22 +43,70 @@ export abstract class AbstractLanguageServer<
     this.connection.listen();
   }
 
-  handleUninitializedRequest: lsp.StarRequestHandler = () =>
-    new lsp.ResponseError(
-      lsp.ErrorCodes.ServerNotInitialized,
+  handleFoldingRanges(
+    params: FoldingRangeRequestParam,
+    enablePlainPrefix: boolean,
+    enableAtPrefix: boolean
+  ): FoldingRange[] {
+    const { uri } = params.textDocument;
+    const document = this.documents.get(uri);
+    const ranges: FoldingRange[] = [];
+
+    if (!document) {
+      return ranges;
+    }
+
+    const lines = document.getText().split(/\r?\n/);
+    let lineIdx = 0;
+    while (lineIdx < lines.length - 1) {
+      const lowerCaseLine = lines[lineIdx].toLowerCase();
+      const lowerCaseNextLine = lines[lineIdx + 1].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const trimmedNextLine = lowerCaseNextLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+      const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
+      if (
+        enablePlainPrefix &&
+        trimmedLine.startsWith('prefix') &&
+        trimmedNextLine.startsWith('prefix')
+      ) {
+        const range = this.getPrefixFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+          lineIdx = range.endLine;
+        } else {
+          lineIdx++;
+        }
+      } else if (
+        enableAtPrefix &&
+        trimmedLine.startsWith('@prefix') &&
+        trimmedNextLine.startsWith('@prefix')
+      ) {
+      } else if (trimmedLine && indentNextLevel > indentLevel) {
+        const range = this.getIndentFoldingRange(lines, lineIdx);
+        if (range) {
+          ranges.push(range);
+        }
+      }
+      lineIdx++;
+    }
+    return ranges;
+  }
+
+  handleUninitializedRequest: StarRequestHandler = () =>
+    new ResponseError(
+      ErrorCodes.ServerNotInitialized,
       'Expecting "initialize" request from client.'
     );
 
-  handleUnhandledRequest: lsp.StarRequestHandler = (method) =>
-    new lsp.ResponseError(
-      lsp.ErrorCodes.MethodNotFound,
+  handleUnhandledRequest: StarRequestHandler = (method) =>
+    new ResponseError(
+      ErrorCodes.MethodNotFound,
       `Request: "${method}" is not handled by the server.`
     );
 
-  abstract onInitialization(params: lsp.InitializeParams);
-  private handleInitialization(
-    params: lsp.InitializeParams
-  ): lsp.InitializeResult {
+  abstract onInitialization(params: InitializeParams);
+  private handleInitialization(params: InitializeParams): InitializeResult {
     // Setting this StarHandler is intended to overwrite the handler set
     // in the constructor, which always responded with a "Server not initialized"
     // error. Here, we're initialized, so we replace with an "Unhandled method"
@@ -51,10 +116,10 @@ export abstract class AbstractLanguageServer<
   }
 
   abstract onContentChange(
-    params: lsp.TextDocumentChangeEvent,
+    params: TextDocumentChangeEvent,
     parseResults: ReturnType<AbstractLanguageServer<T>['parseDocument']>
   ): void;
-  private handleContentChange(params: lsp.TextDocumentChangeEvent) {
+  private handleContentChange(params: TextDocumentChangeEvent) {
     const { document } = params;
     const { uri } = document;
     const { cst, errors, tokens, otherParseData } = this.parseDocument(
@@ -69,7 +134,52 @@ export abstract class AbstractLanguageServer<
     });
   }
 
-  handleHover(params: lsp.TextDocumentPositionParams): lsp.Hover {
+  getIndentFoldingRange(lines, lineIdx) {
+    const start = lineIdx;
+    const startingLine = lines[lineIdx];
+    const startIndentLevel =
+      startingLine.length - startingLine.trimLeft().length;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase();
+      const trimmedLine = lowerCaseLine.trimLeft();
+      const indentLevel = lowerCaseLine.length - trimmedLine.length;
+
+      if (indentLevel <= startIndentLevel) {
+        return {
+          startLine: start,
+          endLine: i - 1,
+          kind: 'indent',
+        };
+      }
+    }
+    return {
+      startLine: start,
+      endLine: lines.length - 1,
+      kind: 'indent',
+    };
+  }
+
+  getPrefixFoldingRange(lines, lineIdx) {
+    const startLine = lineIdx;
+
+    for (let i = lineIdx + 1; i < lines.length; i++) {
+      const lowerCaseLine = lines[i].toLowerCase().trimLeft();
+      if (
+        !lowerCaseLine.startsWith('prefix') &&
+        !lowerCaseLine.startsWith('@prefix')
+      ) {
+        return {
+          startLine,
+          endLine: i - 1,
+          kind: 'prefix',
+        };
+      }
+    }
+    return null;
+  }
+
+  handleHover(params: TextDocumentPositionParams): Hover {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
     const content = document.getText();
@@ -147,13 +257,13 @@ ${currentRule}
     };
   }
 
-  handleDocumentClose({ document }: lsp.TextDocumentChangeEvent) {
+  handleDocumentClose({ document }: TextDocumentChangeEvent) {
     // In the future, if we want to handle things like 'GoToDefinition', we may
     // want to keep something around here. For now, we just get rid of it.
     this.parseStateManager.clearParseStateForUri(document.uri);
   }
 
-  parseDocument(document: lsp.TextDocument) {
+  parseDocument(document: TextDocument) {
     const content = document.getText();
     const { cst, errors, ...otherParseData } = this.parser.parse(content);
     const tokens = this.parser.input;
@@ -169,12 +279,12 @@ ${currentRule}
     };
   }
 
-  getLexDiagnostics(document: lsp.TextDocument, tokens: IToken[]) {
+  getLexDiagnostics(document: TextDocument, tokens: IToken[]) {
     return tokens
       .filter((res) => res.tokenType.tokenName === 'Unknown')
       .map(
-        (unknownToken): lsp.Diagnostic => ({
-          severity: lsp.DiagnosticSeverity.Error,
+        (unknownToken): Diagnostic => ({
+          severity: DiagnosticSeverity.Error,
           message: `Unknown token`,
           range: {
             start: document.positionAt(unknownToken.startOffset),
@@ -185,25 +295,25 @@ ${currentRule}
       );
   }
 
-  getParseDiagnostics(document: lsp.TextDocument, errors: ISemanticError[]) {
+  getParseDiagnostics(document: TextDocument, errors: ISemanticError[]) {
     const content = document.getText();
 
     return errors.map(
-      (error): lsp.Diagnostic => {
+      (error): Diagnostic => {
         const { message, context, token } = error;
         const ruleStack = context ? context.ruleStack : null;
         const source =
           ruleStack && ruleStack.length > 0
             ? ruleStack[ruleStack.length - 1]
             : null;
-        const constructedDiagnostic: Partial<lsp.Diagnostic> = {
+        const constructedDiagnostic: Partial<Diagnostic> = {
           message,
           source,
-          severity: lsp.DiagnosticSeverity.Error,
+          severity: DiagnosticSeverity.Error,
         };
 
         if (token.tokenType.tokenName !== 'EOF') {
-          constructedDiagnostic.range = lsp.Range.create(
+          constructedDiagnostic.range = Range.create(
             document.positionAt(token.startOffset),
             document.positionAt(token.endOffset + 1)
           );
@@ -219,13 +329,13 @@ ${currentRule}
             rangeStart = rangeEnd = content.length;
           }
 
-          constructedDiagnostic.range = lsp.Range.create(
+          constructedDiagnostic.range = Range.create(
             document.positionAt(rangeStart),
             document.positionAt(rangeEnd)
           );
         }
 
-        return constructedDiagnostic as lsp.Diagnostic;
+        return constructedDiagnostic as Diagnostic;
       }
     );
   }

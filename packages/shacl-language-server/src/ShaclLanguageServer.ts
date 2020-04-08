@@ -1,7 +1,6 @@
 import {
   CompletionItem,
   CompletionItemKind,
-  FoldingRange,
   FoldingRangeRequestParam,
   IConnection,
   InitializeParams,
@@ -58,7 +57,9 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
 
   onInitialization(_params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
-    this.connection.onFoldingRanges(this.handleFoldingRanges);
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, true)
+    );
 
     return {
       capabilities: {
@@ -107,93 +108,6 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
       uri,
       diagnostics: [...lexDiagnostics, ...parseDiagnostics],
     });
-  }
-
-  getIndentFoldingRange(lines, lineIdx) {
-    const start = lineIdx;
-    const startingLine = lines[lineIdx];
-    const startIndentLevel =
-      startingLine.length - startingLine.trimLeft().length;
-
-    for (let i = lineIdx + 1; i < lines.length; i++) {
-      const lowerCaseLine = lines[i].toLowerCase();
-      const trimmedLine = lowerCaseLine.trimLeft();
-      const indentLevel = lowerCaseLine.length - trimmedLine.length;
-
-      if (indentLevel <= startIndentLevel) {
-        return {
-          startLine: start,
-          endLine: i - 1,
-          kind: 'indent',
-        };
-      }
-    }
-    return {
-      startLine: start,
-      endLine: lines.length - 1,
-      kind: 'indent',
-    };
-  }
-
-  getPrefixFoldingRange(lines, lineIdx) {
-    const startLine = lineIdx;
-
-    for (let i = lineIdx + 1; i < lines.length; i++) {
-      const lowerCaseLine = lines[i].toLowerCase().trimLeft();
-      if (
-        !lowerCaseLine.startsWith('prefix') &&
-        !lowerCaseLine.startsWith('@prefix')
-      ) {
-        return {
-          startLine,
-          endLine: i - 1,
-          kind: 'prefix',
-        };
-      }
-    }
-    return null;
-  }
-
-  handleFoldingRanges(params: FoldingRangeRequestParam): FoldingRange[] {
-    const { uri } = params.textDocument;
-    const document = this.documents.get(uri);
-    const ranges: FoldingRange[] = [];
-
-    if (!document) {
-      return ranges;
-    }
-
-    const lines = document.getText().split(/\r?\n/);
-    let lineIdx = 0;
-    while (lineIdx < lines.length - 1) {
-      const lowerCaseLine = lines[lineIdx].toLowerCase();
-      const lowerCaseNextLine = lines[lineIdx + 1].toLowerCase();
-      const trimmedLine = lowerCaseLine.trimLeft();
-      const trimmedNextLine = lowerCaseNextLine.trimLeft();
-      const indentLevel = lowerCaseLine.length - trimmedLine.length;
-      const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
-      if (
-        (trimmedLine.startsWith('prefix') ||
-          trimmedLine.startsWith('@prefix')) &&
-        (trimmedNextLine.startsWith('prefix') ||
-          trimmedNextLine.startsWith('@prefix'))
-      ) {
-        const range = this.getPrefixFoldingRange(lines, lineIdx);
-        if (range) {
-          ranges.push(range);
-          lineIdx = range.endLine;
-        } else {
-          lineIdx++;
-        }
-      } else if (trimmedLine && indentNextLevel > indentLevel) {
-        const range = this.getIndentFoldingRange(lines, lineIdx);
-        if (range) {
-          ranges.push(range);
-        }
-      }
-      lineIdx++;
-    }
-    return ranges;
   }
 
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
