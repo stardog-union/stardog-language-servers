@@ -65,23 +65,26 @@ export abstract class AbstractLanguageServer<
       const trimmedNextLine = lowerCaseNextLine.trimLeft();
       const indentLevel = lowerCaseLine.length - trimmedLine.length;
       const indentNextLevel = lowerCaseNextLine.length - trimmedNextLine.length;
-      if (
+      const plainPrefixCondition =
         enablePlainPrefix &&
         trimmedLine.startsWith('prefix') &&
-        trimmedNextLine.startsWith('prefix')
-      ) {
-        const range = this.getPrefixFoldingRange(lines, lineIdx);
+        trimmedNextLine.startsWith('prefix');
+      const atPrefixCondition =
+        enableAtPrefix &&
+        trimmedLine.startsWith('@prefix') &&
+        trimmedNextLine.startsWith('@prefix');
+      if (plainPrefixCondition || atPrefixCondition) {
+        const range = this.getPrefixFoldingRange(
+          lines,
+          lineIdx,
+          atPrefixCondition
+        );
         if (range) {
           ranges.push(range);
           lineIdx = range.endLine;
         } else {
           lineIdx++;
         }
-      } else if (
-        enableAtPrefix &&
-        trimmedLine.startsWith('@prefix') &&
-        trimmedNextLine.startsWith('@prefix')
-      ) {
       } else if (trimmedLine && indentNextLevel > indentLevel) {
         const range = this.getIndentFoldingRange(lines, lineIdx);
         if (range) {
@@ -134,7 +137,7 @@ export abstract class AbstractLanguageServer<
     });
   }
 
-  getIndentFoldingRange(lines, lineIdx) {
+  getIndentFoldingRange(lines: string[], lineIdx: number) {
     const start = lineIdx;
     const startingLine = lines[lineIdx];
     const startIndentLevel =
@@ -160,14 +163,14 @@ export abstract class AbstractLanguageServer<
     };
   }
 
-  getPrefixFoldingRange(lines, lineIdx) {
+  getPrefixFoldingRange(lines: string[], lineIdx: number, isAtPrefix: boolean) {
     const startLine = lineIdx;
 
     for (let i = lineIdx + 1; i < lines.length; i++) {
       const lowerCaseLine = lines[i].toLowerCase().trimLeft();
       if (
-        !lowerCaseLine.startsWith('prefix') &&
-        !lowerCaseLine.startsWith('@prefix')
+        (!isAtPrefix && !lowerCaseLine.startsWith('prefix')) ||
+        (isAtPrefix && !lowerCaseLine.startsWith('@prefix'))
       ) {
         return {
           startLine,
