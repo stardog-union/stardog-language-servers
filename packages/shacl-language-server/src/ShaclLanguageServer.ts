@@ -1,4 +1,15 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  CompletionItem,
+  CompletionItemKind,
+  FoldingRangeRequestParam,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  Range,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
+} from 'vscode-languageserver';
 import uniqBy from 'lodash.uniqby';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
@@ -31,7 +42,7 @@ const baseShaclTokens = Object.keys(shaclTokenMap).reduce(
 
 @autoBindMethods
 export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(
       connection,
       new ShaclParser(
@@ -44,8 +55,11 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
     );
   }
 
-  onInitialization(_params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(_params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, true)
+    );
 
     return {
       capabilities: {
@@ -54,13 +68,14 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
         completionProvider: {
           triggerCharacters: ['<', ':'],
         },
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<
       AbstractLanguageServer<ShaclParser>['parseDocument']
     >
@@ -95,9 +110,7 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
     });
   }
 
-  handleCompletion(
-    params: lsp.TextDocumentPositionParams
-  ): lsp.CompletionItem[] {
+  handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
     let { tokens } = this.parseStateManager.getParseStateForUri(uri);
@@ -128,8 +141,8 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
     const replaceTokenAtCursor = (
       replacement: string,
       replacementRange?: CompletionCandidate['replacementRange']
-    ): lsp.TextEdit => {
-      let textEditRange: lsp.Range;
+    ): TextEdit => {
+      let textEditRange: Range;
 
       if (replacementRange) {
         textEditRange = {
@@ -143,7 +156,7 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
         };
       }
 
-      return lsp.TextEdit.replace(textEditRange, replacement);
+      return TextEdit.replace(textEditRange, replacement);
     };
 
     // Completions are collected in this way (pushing, etc.) for
@@ -173,8 +186,8 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
     tokenReplacer: (
       replacement: string,
       replacementRange?: CompletionCandidate['replacementRange']
-    ) => lsp.TextEdit
-  ): lsp.CompletionItem | lsp.CompletionItem[] | void {
+    ) => TextEdit
+  ): CompletionItem | CompletionItem[] | void {
     const { tokenName, PATTERN } = candidate.nextTokenType;
     const pattern = tokenName.startsWith(SHACL_TOKEN_PREFIX)
       ? shaclTokenMap[`${tokenName}_prefixed`].PATTERN
@@ -198,20 +211,20 @@ export class ShaclLanguageServer extends AbstractLanguageServer<ShaclParser> {
           },
           tokenReplacer
         )
-      ) as lsp.CompletionItem[];
+      ) as CompletionItem[];
     }
 
     if (typeof pattern === 'string') {
       return {
         label: pattern,
-        kind: lsp.CompletionItemKind.EnumMember,
+        kind: CompletionItemKind.EnumMember,
         textEdit: tokenReplacer(pattern, candidate.replacementRange),
       };
     } else if (pattern instanceof RegExp && tokenName in sparqlKeywords) {
       const keywordString = regexPatternToString(pattern);
       return {
         label: keywordString,
-        kind: lsp.CompletionItemKind.EnumMember,
+        kind: CompletionItemKind.EnumMember,
         textEdit: tokenReplacer(keywordString, candidate.replacementRange),
       };
     } else {
