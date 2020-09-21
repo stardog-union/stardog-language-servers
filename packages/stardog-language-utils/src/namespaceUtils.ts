@@ -72,3 +72,31 @@ export const namespaceArrayToObj = (array) =>
       [alias]: prefix,
     };
   }, {});
+
+const escapeSequence = /\\u([a-fA-F0-9]{4})/g;
+
+export const unescapeString = (
+  item: string
+): { indices: number[]; unescapedString: string } => {
+  const indices: number[] = [];
+  let unescapedString = item;
+  let trackedMatchCount = 0;
+  try {
+    unescapedString = item.replace(
+      escapeSequence,
+      (_: string, code: string, offset: number) => {
+        indices.push(offset - trackedMatchCount * 5);
+        let charCode = parseInt(code, 16);
+        trackedMatchCount++;
+        if (charCode <= 0xffff) {
+          return String.fromCharCode(charCode);
+        }
+        return String.fromCharCode(
+          0xd800 + (charCode -= 0x10000) / 0x400,
+          0xdc00 + (charCode & 0x3ff)
+        );
+      }
+    );
+  } catch (error) {}
+  return { indices, unescapedString };
+};

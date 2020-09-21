@@ -35,9 +35,10 @@ import {
   getCommonCompletionItemsGivenNamespaces,
   makeCompletionItemFromPrefixedNameAndNamespaceIri,
   ARBITRARILY_LARGE_NUMBER,
+  unescapeString,
 } from 'stardog-language-utils';
 import uniqBy from 'lodash.uniqby';
-import { IToken } from 'chevrotain';
+import { IRecognitionException, IToken } from 'chevrotain';
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -86,6 +87,119 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         hoverProvider: true,
       },
     };
+  }
+
+  parseDocument(document: TextDocument) {
+    const content = document.getText();
+    const { indices, unescapedString } = unescapeString(content);
+    const { cst, errors, ...otherParseData } = this.parser.parse(
+      unescapedString
+    );
+    const tokens = this.parser.input;
+
+    return {
+      cst: indices.length ? this.adjustCstForEscapedText(cst, indices) : cst,
+      tokens: indices.length
+        ? tokens.map((token) => this.adjustTokenForEscapedText(token, indices))
+        : tokens,
+      errors: indices.length
+        ? this.adjustErrorsForEscapedText(errors, indices)
+        : errors,
+      otherParseData: otherParseData as Omit<
+        ReturnType<StardogSparqlParser['parse']>,
+        'cst' | 'errors'
+      >,
+    };
+  }
+
+  adjustCstForEscapedText(input: Object | Object[], indices: number[]) {
+    if (Array.isArray(input)) {
+      return input.map((child) => this.adjustCstForEscapedText(child, indices));
+    } else if (typeof input === 'object' && input !== null) {
+      if (input.hasOwnProperty('endColumn')) {
+        return this.adjustTokenForEscapedText(input as IToken, indices);
+      }
+      const newInput = { ...input };
+      Object.keys(newInput).forEach((key) => {
+        newInput[key] = this.adjustCstForEscapedText(newInput[key], indices);
+      });
+      return newInput;
+    } else {
+      return input;
+    }
+  }
+
+  adjustErrorsForEscapedText(
+    errors: IRecognitionException[],
+    indices: number[]
+  ) {
+    return errors.map((error) =>
+      this.adjustErrorForEscapedText(error, indices)
+    );
+  }
+
+  adjustErrorForEscapedText(error: IRecognitionException, indices: number[]) {
+    const newError: IRecognitionException = { ...error };
+    if (newError.token) {
+      newError.token = this.adjustTokenForEscapedText(newError.token, indices);
+    }
+    // @ts-ignore apparently errors from the parser are IRecognitionError[]
+    // according to chevrotain, but they do not have the `previousToken` property
+    if (newError.previousToken) {
+      // @ts-ignore
+      newError.previousToken = this.adjustTokenForEscapedText(
+        // @ts-ignore
+        newError.previousToken,
+        indices
+      );
+    }
+    if (newError.resyncedTokens) {
+      newError.resyncedTokens = newError.resyncedTokens.map((token) =>
+        this.adjustTokenForEscapedText(token, indices)
+      );
+    }
+    return newError;
+  }
+
+  adjustTokenForEscapedText(token: IToken, indices: number[]) {
+    const newToken: IToken = { ...token };
+    [
+      newToken.startOffset,
+      newToken.endOffset,
+    ] = this.adjustPositionsForEscapedText(
+      newToken.startOffset,
+      newToken.endOffset,
+      indices
+    );
+    [newToken.startColumn, newToken.endColumn] = [
+      newToken.startOffset + 1,
+      newToken.endOffset + 1,
+    ];
+    return newToken;
+  }
+
+  adjustPositionsForEscapedText(
+    startPosition: number,
+    endPosition: number,
+    indices: number[]
+  ): [number, number] {
+    let adjustStartNum = 0;
+    let adjustEndNum = 0;
+    for (const index of indices) {
+      if (startPosition <= index) {
+        if (endPosition >= index) {
+          adjustEndNum++;
+        } else {
+          break;
+        }
+      } else {
+        adjustStartNum++;
+        adjustEndNum++;
+      }
+    }
+    const newStartPosition = startPosition + adjustStartNum * 5;
+    const newEndPosition = endPosition + adjustEndNum * 5;
+    return [newStartPosition, newEndPosition];
   }
 
   handleUpdateCompletionData(update: SparqlCompletionData) {
