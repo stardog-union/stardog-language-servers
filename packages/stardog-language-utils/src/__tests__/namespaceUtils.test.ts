@@ -96,6 +96,8 @@ describe('abbreviatePrefixArray and abbreviatePrefixObj', () => {
 describe('unescapeString', () => {
   it('unescaped a string with escaped 4 digit unicode sequences', () => {
     const string = 'S\\u0045LECT * \\u007B ?s ?p ?o \\u007D';
-    expect(unescapeString(string)).toMatch('SELECT * { ?s ?p ?o }');
+    expect(unescapeString(string).unescapedString).toMatch(
+      'SELECT * { ?s ?p ?o }'
+    );
   });
 });
