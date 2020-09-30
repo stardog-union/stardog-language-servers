@@ -73,30 +73,38 @@ export const namespaceArrayToObj = (array) =>
     };
   }, {});
 
-const escapeSequence = /\\u([a-fA-F0-9]{4})/g;
+const escapeSequence = /\\u([a-fA-F0-9]{4})|\\U([a-fA-F0-9]{8})/g;
 
 export const unescapeString = (
   item: string
-): { indices: number[]; unescapedString: string } => {
-  const indices: number[] = [];
+): { indexMap: Map<number, number>; unescapedString: string } => {
+  const indexMap = new Map<number, number>();
   let unescapedString = item;
-  let trackedMatchCount = 0;
+  let displaceTotal = 0;
   try {
     unescapedString = item.replace(
       escapeSequence,
-      (_: string, code: string, offset: number) => {
-        indices.push(offset - trackedMatchCount * 5);
-        let charCode = parseInt(code, 16);
-        trackedMatchCount++;
-        if (charCode <= 0xffff) {
+      (_: string, unicode4: string, unicode8: string, offset: number) => {
+        const currentIndex = offset - displaceTotal;
+        const displaceNum = unicode4 ? 5 : 9;
+        displaceTotal += displaceNum;
+
+        indexMap.set(currentIndex, displaceNum);
+        let charCode = parseInt(unicode8 || unicode4, 16);
+
+        if (unicode8) {
           return String.fromCharCode(charCode);
+        } else if (unicode4) {
+          if (charCode <= 0xffff) {
+            return String.fromCharCode(charCode);
+          }
+          return String.fromCharCode(
+            0xd800 + (charCode -= 0x10000) / 0x400,
+            0xdc00 + (charCode & 0x3ff)
+          );
         }
-        return String.fromCharCode(
-          0xd800 + (charCode -= 0x10000) / 0x400,
-          0xdc00 + (charCode & 0x3ff)
-        );
       }
     );
   } catch (error) {}
-  return { indices, unescapedString };
+  return { indexMap, unescapedString };
 };

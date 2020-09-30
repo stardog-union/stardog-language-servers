@@ -38,7 +38,7 @@ import {
   unescapeString,
 } from 'stardog-language-utils';
 import uniqBy from 'lodash.uniqby';
-import { IRecognitionException, IToken } from 'chevrotain';
+import { IToken } from 'chevrotain';
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -89,21 +89,27 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     };
   }
 
-  parseDocument(document: TextDocument) {
+  parseDocument(
+    document: TextDocument
+  ): ReturnType<
+    AbstractLanguageServer<
+      StardogSparqlParser | W3SpecSparqlParser
+    >['parseDocument']
+  > {
     const content = document.getText();
-    const { indices, unescapedString } = unescapeString(content);
+    const { indexMap, unescapedString } = unescapeString(content);
     const { cst, errors, ...otherParseData } = this.parser.parse(
       unescapedString
     );
     const tokens = this.parser.input;
 
     return {
-      cst: indices.length ? this.adjustCstForEscapedText(cst, indices) : cst,
-      tokens: indices.length
-        ? tokens.map((token) => this.adjustTokenForEscapedText(token, indices))
+      cst: indexMap.size ? this.adjustCstForEscapedText(cst, indexMap) : cst,
+      tokens: indexMap.size
+        ? tokens.map((token) => this.adjustTokenForEscapedText(token, indexMap))
         : tokens,
-      errors: indices.length
-        ? this.adjustErrorsForEscapedText(errors, indices)
+      errors: indexMap.size
+        ? this.adjustErrorsForEscapedText(errors, indexMap)
         : errors,
       otherParseData: otherParseData as Omit<
         ReturnType<StardogSparqlParser['parse']>,
