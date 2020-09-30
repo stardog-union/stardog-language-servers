@@ -1,14 +1,15 @@
 import {
-  InitializeResult,
-  TextDocumentPositionParams,
-  TextDocumentChangeEvent,
   CompletionItem,
   CompletionItemKind,
-  TextEdit,
-  InitializeParams,
+  FoldingRangeRequestParam,
   IConnection,
+  InitializeParams,
+  InitializeResult,
   Range,
   TextDocument,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
 } from 'vscode-languageserver';
 import {
   StardogSparqlParser,
@@ -59,6 +60,9 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
 
   onInitialization(params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, false)
+    );
     this.connection.onNotification(
       LSPExtensionMethod.DID_UPDATE_COMPLETION_DATA,
       this.handleUpdateCompletionData
@@ -84,6 +88,7 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         completionProvider: {
           triggerCharacters: ['<', '?', '$'],
         },
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };

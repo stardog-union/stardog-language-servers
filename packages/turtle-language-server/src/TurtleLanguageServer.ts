@@ -1,4 +1,11 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  FoldingRangeRequestParam,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  TextDocument,
+  TextDocumentChangeEvent,
+} from 'vscode-languageserver';
 import {
   AbstractLanguageServer,
   errorMessageProvider,
@@ -8,11 +15,14 @@ import { TurtleParser, ModeString } from 'millan';
 export class TurtleLanguageServer extends AbstractLanguageServer<TurtleParser> {
   private mode: ModeString = 'standard';
 
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(connection, new TurtleParser({ errorMessageProvider }));
   }
 
-  onInitialization(params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(params: InitializeParams): InitializeResult {
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, true)
+    );
     if (
       params.initializationOptions &&
       (params.initializationOptions.mode === 'stardog' ||
@@ -25,13 +35,14 @@ export class TurtleLanguageServer extends AbstractLanguageServer<TurtleParser> {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<
       AbstractLanguageServer<TurtleParser>['parseDocument']
     >
@@ -58,7 +69,7 @@ export class TurtleLanguageServer extends AbstractLanguageServer<TurtleParser> {
   }
 
   // Override to allow parsing modes.
-  parseDocument(document: lsp.TextDocument) {
+  parseDocument(document: TextDocument) {
     const content = document.getText();
     const { cst, errors, ...otherParseData } = this.parser.parse(
       content,

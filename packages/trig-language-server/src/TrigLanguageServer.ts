@@ -1,4 +1,11 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  FoldingRangeRequestParam,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  TextDocument,
+  TextDocumentChangeEvent,
+} from 'vscode-languageserver';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   AbstractLanguageServer,
@@ -10,11 +17,14 @@ import { TrigParser, ModeString } from 'millan';
 export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
   private mode: ModeString = 'standard';
 
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(connection, new TrigParser({ errorMessageProvider }));
   }
 
-  onInitialization(params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(params: InitializeParams): InitializeResult {
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, true)
+    );
     if (
       params.initializationOptions &&
       (params.initializationOptions.mode === 'stardog' ||
@@ -27,13 +37,14 @@ export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
+        foldingRangeProvider: true,
         hoverProvider: true,
       },
     };
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<
       AbstractLanguageServer<TrigParser>['parseDocument']
     >
@@ -60,7 +71,7 @@ export class TrigLanguageServer extends AbstractLanguageServer<TrigParser> {
   }
 
   // Override to allow parsing modes.
-  parseDocument(document: lsp.TextDocument) {
+  parseDocument(document: TextDocument) {
     const content = document.getText();
     const { cst, errors, ...otherParseData } = this.parser.parse(
       content,

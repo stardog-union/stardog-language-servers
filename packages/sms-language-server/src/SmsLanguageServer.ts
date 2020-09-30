@@ -1,4 +1,16 @@
-import * as lsp from 'vscode-languageserver';
+import {
+  CompletionItem,
+  CompletionItemKind,
+  FoldingRangeRequestParam,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  InsertTextFormat,
+  Range,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
+} from 'vscode-languageserver';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   errorMessageProvider,
@@ -9,18 +21,22 @@ import { SmsParser } from 'millan';
 
 @autoBindMethods
 export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
-  constructor(connection: lsp.IConnection) {
+  constructor(connection: IConnection) {
     super(connection, new SmsParser({ errorMessageProvider }));
   }
 
-  onInitialization(_params: lsp.InitializeParams): lsp.InitializeResult {
+  onInitialization(_params: InitializeParams): InitializeResult {
     this.connection.onCompletion(this.handleCompletion);
+    this.connection.onFoldingRanges((params: FoldingRangeRequestParam) =>
+      this.handleFoldingRanges(params, true, false)
+    );
 
     return {
       capabilities: {
         // Tell the client that the server works in NONE text document sync mode
         textDocumentSync: this.documents.syncKind[0],
         hoverProvider: true,
+        foldingRangeProvider: true,
         completionProvider: {
           triggerCharacters: ['<', ':', '?', '$'],
         },
@@ -29,7 +45,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
   }
 
   onContentChange(
-    { document }: lsp.TextDocumentChangeEvent,
+    { document }: TextDocumentChangeEvent,
     parseResults: ReturnType<AbstractLanguageServer<SmsParser>['parseDocument']>
   ): void {
     const { uri } = document;
@@ -53,9 +69,7 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
     });
   }
 
-  handleCompletion(
-    params: lsp.TextDocumentPositionParams
-  ): lsp.CompletionItem[] {
+  handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
     const cursorOffset = document.offsetAt(params.position);
@@ -105,13 +119,13 @@ export class SmsLanguageServer extends AbstractLanguageServer<SmsParser> {
       return [
         {
           label: 'basicSMS2Mapping',
-          kind: lsp.CompletionItemKind.Enum,
+          kind: CompletionItemKind.Enum,
           detail: 'Create a basic fill-in-the-blanks SMS2 mapping',
           documentation:
             'Inserts a basic mapping in Stardog Mapping Syntax 2 (SMS2) with tabbing functionality and content assistance. For more documentation of SMS2, check out "Help" --> "Stardog Docs".',
-          insertTextFormat: lsp.InsertTextFormat.Snippet,
-          textEdit: lsp.TextEdit.replace(
-            lsp.Range.create(
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: TextEdit.replace(
+            Range.create(
               document.positionAt(cursorOffset - 1),
               document.positionAt(cursorOffset - 1)
             ),
