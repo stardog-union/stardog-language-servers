@@ -28,8 +28,50 @@ import {
   CompletionCandidate,
   ARBITRARILY_LARGE_NUMBER,
 } from 'stardog-language-utils';
-import { ISemanticError, TokenType } from 'millan';
+import { ISemanticError, TokenType, graphQlTokens } from 'millan';
 
+const { stardogGraphQlTokenMap, stardogGraphQlTokens } = graphQlTokens;
+// @ts-ignore
+const stardogSpecificDirectives = stardogGraphQlTokens
+  .filter(
+    (tokenType: TokenType) =>
+      tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogDirective) ||
+      tokenType === stardogGraphQlTokenMap.TypeToken
+  )
+  .map((directiveTokenType: TokenType) => {
+    const directiveData = {
+      allowedArguments: [],
+      isTopLevelOnly:
+        directiveTokenType === stardogGraphQlTokenMap.ConfigDirectiveToken ||
+        directiveTokenType === stardogGraphQlTokenMap.PrefixDirectiveToken,
+      tokenType: directiveTokenType,
+    };
+
+    if (
+      directiveTokenType.CATEGORIES.includes(
+        stardogGraphQlTokenMap.ConditionalStardogDirective
+      )
+    ) {
+      directiveData.allowedArguments.push(
+        stardogGraphQlTokenMap.IfArgumentToken
+      );
+    } else if (
+      directiveTokenType === stardogGraphQlTokenMap.BindDirectiveToken
+    ) {
+      directiveData.allowedArguments.push(
+        stardogGraphQlTokenMap.ToArgumentToken
+      );
+    } else if (
+      directiveTokenType === stardogGraphQlTokenMap.ConfigDirectiveToken
+    ) {
+      directiveData.allowedArguments.push(
+        stardogGraphQlTokenMap.GraphArgumentToken,
+        stardogGraphQlTokenMap.AliasArgumentToken
+      );
+    }
+
+    return directiveData;
+  });
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
 const GRAPHQL_VALUE_TYPES = ['Int', 'Float', 'String', 'Boolean', 'Null'];
 
@@ -203,6 +245,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       this.parseStateManager.saveParseStateForUri(uri, { cst, tokens });
     }
 
+    // @ts-ignore
+    const parseState = this.parseStateManager.getParseStateForUri(uri);
     const cursorOffset = document.offsetAt(params.position);
     const tokenAtCursor = tokens.find(
       (token) =>
@@ -239,6 +283,98 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       tokenVectorForContentAssist
     );
 
+    const directiveCandidate = candidates.find(
+      (candidate) =>
+        candidate.ruleStack[candidate.ruleStack.length - 1] === 'Directive'
+    );
+    const argumentAliasCandidate = candidates.find((candidate) => {
+      const { ruleStack } = candidate;
+      const ruleStackLength = ruleStack.length;
+      return (
+        ruleStack[ruleStackLength - 1] === 'Alias' &&
+        ruleStack[ruleStackLength - 2] === 'Argument' &&
+        !candidate.nextTokenType.CATEGORIES.some(
+          (categoryTokenType) =>
+            categoryTokenType.name === stardogGraphQlTokenMap.Punctuator.name
+        )
+      );
+    });
+
+    if (directiveCandidate) {
+      const isTopLevel = !directiveCandidate.ruleStack
+        .slice(0, -1)
+        .includes('SelectionSet');
+      const stardogSpecificDirectivesForLevel = stardogSpecificDirectives.filter(
+        (directive) =>
+          isTopLevel ? directive.isTopLevelOnly : !directive.isTopLevelOnly
+      );
+
+      stardogSpecificDirectivesForLevel.forEach((stardogSpecificDirective) =>
+        candidates.push({
+          ...directiveCandidate,
+          nextTokenType: stardogSpecificDirective.tokenType,
+        })
+      );
+    }
+
+    if (argumentAliasCandidate) {
+      const isDirectiveArgument =
+        argumentAliasCandidate.ruleStack.slice(-4).join('/') ===
+        'Directive/Arguments/Argument/Alias';
+
+      if (isDirectiveArgument) {
+        const tokenVectorLength = tokenVectorForContentAssist.length;
+        let containingStardogDirective;
+        let parensStackCount = 1;
+
+        for (
+          let i = tokenVectorLength - 1;
+          i >= 0 || parensStackCount < 0;
+          i--
+        ) {
+          const currentToken = tokenVectorForContentAssist[i];
+          if (
+            currentToken.tokenType.name === stardogGraphQlTokenMap.LParen.name
+          ) {
+            parensStackCount--;
+          } else if (
+            currentToken.tokenType.name === stardogGraphQlTokenMap.RParen.name
+          ) {
+            parensStackCount++;
+          }
+          if (
+            currentToken.tokenType.CATEGORIES.some(
+              (categoryToken) =>
+                categoryToken.name ===
+                stardogGraphQlTokenMap.StardogDirective.name
+            ) &&
+            parensStackCount === 0
+          ) {
+            containingStardogDirective = currentToken;
+            break;
+          }
+        }
+
+        if (containingStardogDirective) {
+          const containingDirectiveData = stardogSpecificDirectives.find(
+            (directive) =>
+              directive.tokenType.name ===
+              containingStardogDirective.tokenType.name
+          );
+          if (containingDirectiveData) {
+            containingDirectiveData.allowedArguments.forEach(
+              (argumentAliasTokenType) =>
+                candidates.push({
+                  ...argumentAliasCandidate,
+                  nextTokenType: argumentAliasTokenType,
+                })
+            );
+          }
+        }
+      }
+    }
+
+    debugger;
     const replaceTokenAtCursor = (
       replacement: string,
       replacementRange?: CompletionCandidate['replacementRange']
