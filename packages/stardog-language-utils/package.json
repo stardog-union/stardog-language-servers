@@ -72,7 +72,7 @@
     "yargs": "^12.0.5"
   },
   "dependencies": {
-    "chevrotain": "4.4.0",
+    "chevrotain": "4.7.0",
     "escape-string-regexp": "^1.0.5",
     "lodash.uniqby": "^4.7.0",
     "millan": "^4.1.1",
