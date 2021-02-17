@@ -210,6 +210,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   private addStardogSpecificDirectivesToCompletionCandidates(
     candidates: CompletionCandidate[]
   ) {
+    // Find the candidate, if any, that is at the spot where a directive name
+    // is valid.
     const directiveCandidate = candidates.find(
       (candidate) =>
         candidate.ruleStack[candidate.ruleStack.length - 1] === 'Directive' &&
@@ -220,9 +222,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       return;
     }
 
-    const isTopLevel = !directiveCandidate.ruleStack
-      .slice(0, -1)
-      .includes('SelectionSet');
+    const isTopLevel = !directiveCandidate.ruleStack.includes('SelectionSet');
     const stardogSpecificDirectivesForLevel = stardogSpecificDirectives.filter(
       (directive) =>
         isTopLevel
@@ -242,6 +242,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     candidates: CompletionCandidate[],
     tokenVectorForContentAssist: IToken[]
   ) {
+    // Find the candidate, if any, that is at the spot where an Argument Alias
+    // is valid.
     const argumentAliasCandidate = candidates.find(({ ruleStack }) => {
       const ruleStackLength = ruleStack.length;
       return (
@@ -263,7 +265,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       let parensStackCount = 1;
 
       // Walk back through the tokens until we find the Stardog directive for
-      // which the candidate is an argument.
+      // which the currently located candidate is an argument (using parens
+      // matching).
       for (
         let i = tokenVectorForContentAssist.length - 1;
         i >= 0 || parensStackCount < 0;
@@ -286,6 +289,9 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
           ) &&
           parensStackCount === 0
         ) {
+          // When we have no extraneous parentheses and we've found a Stardog
+          // directive, we know we've got the Stardog-specific directive for
+          // which the candidate is an argument.
           containingStardogDirective = currentToken;
           break;
         }
@@ -295,6 +301,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         return;
       }
 
+      // Get the allowed argument aliases for the located Stardog-specific
+      // directive, and add them to the completion candidates.
       const argumentAliasTokenTypes = graphQlUtils.getArgumentTokenTypesForDirectiveNameToken(
         containingStardogDirective
       );
@@ -305,12 +313,10 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         })
       );
     } else {
-      // Non-directive argument
-      const selectionSetCount = argumentAliasCandidate.ruleStack.reduce(
-        (count, ruleName) => (ruleName === 'SelectionSet' ? count + 1 : count),
-        0
+      // Non-directive argument.
+      const isTopLevel = argumentAliasCandidate.ruleStack.includes(
+        'SelectionSet'
       );
-      const isTopLevel = selectionSetCount <= 1;
       const stardogSpecificArgumentsForLevel = stardogSpecificArguments.filter(
         (argument) =>
           isTopLevel
