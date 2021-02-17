@@ -266,7 +266,7 @@ ${currentRule}
     this.parseStateManager.clearParseStateForUri(document.uri);
   }
 
-  parseDocument(document: TextDocument): any {
+  parseDocument(document: TextDocument) {
     const content = document.getText();
     const { cst, errors, ...otherParseData } = this.parser.parse(content);
     const tokens = this.parser.input;

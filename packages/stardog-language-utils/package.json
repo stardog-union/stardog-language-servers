@@ -1,6 +1,6 @@
 {
   "name": "stardog-language-utils",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types",
@@ -75,7 +75,7 @@
     "chevrotain": "4.7.0",
     "escape-string-regexp": "^1.0.5",
     "lodash.uniqby": "^4.7.0",
-    "millan": "^4.1.1",
+    "millan": "^5.0.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
