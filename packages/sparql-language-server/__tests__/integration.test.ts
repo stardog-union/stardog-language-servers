@@ -132,18 +132,18 @@ describe('sparql language server', () => {
   });
   it('handles autocompletion with longer alternatives', async (done) => {
     const docText = 'select * { ?s ?p ?o . filter(str';
-    const longAltsDoc = TextDocumentItem.create(
-      '/long-alts.rq',
+    const longAltsDoc1 = TextDocumentItem.create(
+      '/long-alts1.rq',
       'sparql',
       1,
       docText
     );
 
     await connection.sendNotification(DidOpenTextDocumentNotification.type, {
-      textDocument: longAltsDoc,
+      textDocument: longAltsDoc1,
     });
     let res = await connection.sendRequest(CompletionRequest.type, {
-      textDocument: longAltsDoc,
+      textDocument: longAltsDoc1,
       position: Position.create(0, docText.length),
     });
     expect((res as CompletionItem[]).some((item) => item.label === 'STR')).toBe(
@@ -153,12 +153,17 @@ describe('sparql language server', () => {
       (res as CompletionItem[]).some((item) => item.label === 'STRSTARTS')
     ).toBe(true);
 
-    longAltsDoc.text = `${docText}s`;
+    const longAltsDoc2 = TextDocumentItem.create(
+      '/long-alts2.rq',
+      'sparql',
+      1,
+      `${docText}s`,
+    );
     await connection.sendNotification(DidOpenTextDocumentNotification.type, {
-      textDocument: longAltsDoc,
+      textDocument: longAltsDoc2,
     });
     res = await connection.sendRequest(CompletionRequest.type, {
-      textDocument: longAltsDoc,
+      textDocument: longAltsDoc2,
       position: Position.create(0, docText.length + 1),
     });
     expect(
