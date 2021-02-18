@@ -130,51 +130,6 @@ describe('sparql language server', () => {
     ).toBe(true);
     done();
   });
-  it('handles autocompletion with longer alternatives', async (done) => {
-    const docText = 'select * { ?s ?p ?o . filter(str';
-    const longAltsDoc1 = TextDocumentItem.create(
-      '/long-alts1.rq',
-      'sparql',
-      1,
-      docText
-    );
-
-    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
-      textDocument: longAltsDoc1,
-    });
-    let res = await connection.sendRequest(CompletionRequest.type, {
-      textDocument: longAltsDoc1,
-      position: Position.create(0, docText.length),
-    });
-    expect((res as CompletionItem[]).some((item) => item.label === 'STR')).toBe(
-      true
-    );
-    expect(
-      (res as CompletionItem[]).some((item) => item.label === 'STRSTARTS')
-    ).toBe(true);
-
-    const longAltsDoc2 = TextDocumentItem.create(
-      '/long-alts2.rq',
-      'sparql',
-      1,
-      `${docText}s`,
-    );
-    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
-      textDocument: longAltsDoc2,
-    });
-    res = await connection.sendRequest(CompletionRequest.type, {
-      textDocument: longAltsDoc2,
-      position: Position.create(0, docText.length + 1),
-    });
-    expect(
-      (res as CompletionItem[]).every((item) => item.label !== 'STR')
-    ).toBe(true);
-    expect(
-      (res as CompletionItem[]).some((item) => item.label === 'STRSTARTS')
-    ).toBe(true);
-
-    done();
-  });
 });
 
 describe('w3 sparql language server', () => {
