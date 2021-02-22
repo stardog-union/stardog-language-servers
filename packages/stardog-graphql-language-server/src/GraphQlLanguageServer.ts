@@ -57,6 +57,54 @@ const partitionTokenTypesByLevel = (
   return partitioned;
 };
 
+const getContainingFunctionSignature = (
+  tokenVector: IToken[],
+  containingFunctionTokenType: TokenType = stardogGraphQlTokenMap.Name
+) => {
+  const tokenVectorLength = tokenVector.length;
+  const suppliedArgumentTokens = [] as IToken[];
+  let parensStackCount = 1; // start with the assumption that we're within one set of parens
+  let containingFunctionToken: IToken;
+
+  for (
+    let indexInVector = tokenVectorLength - 1;
+    indexInVector >= 0 || parensStackCount < 0;
+    indexInVector--
+  ) {
+    const currentToken = tokenVector[indexInVector];
+
+    if (currentToken.tokenType.name === stardogGraphQlTokenMap.LParen.name) {
+      parensStackCount--;
+    } else if (
+      currentToken.tokenType.name === stardogGraphQlTokenMap.RParen.name
+    ) {
+      parensStackCount++;
+    }
+
+    if (
+      parensStackCount === 1 &&
+      is(currentToken.tokenType, 'StardogArgument')
+    ) {
+      suppliedArgumentTokens.push(currentToken);
+    }
+
+    if (
+      is(currentToken.tokenType, containingFunctionTokenType.name) &&
+      parensStackCount === 0
+    ) {
+      // When we have no extraneous parentheses and we've found a token of the
+      // `containingFunctionTokenType`, we know we've got the containing token.
+      containingFunctionToken = currentToken;
+      break;
+    }
+  }
+
+  return {
+    containingFunctionToken,
+    suppliedArgumentTokens,
+  };
+};
+
 const stardogSpecificDirectives = partitionTokenTypesByLevel(
   (tokenType) =>
     tokenType === stardogGraphQlTokenMap.TypeToken ||
@@ -254,6 +302,39 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     );
   }
 
+  // NOTE: This method assumes that all relevant tokenTypes have unique
+  // patterns. This is not true when a token is "abstract", i.e., has Lexer.NA
+  // as the pattern. Do not use this method when those tokens are possible.
+  private addArgumentsToCandidatesWithoutDupes({
+    argumentAliasCandidate,
+    argumentTokenTypes,
+    candidates,
+    suppliedArgumentTokens,
+  }: {
+    argumentAliasCandidate: CompletionCandidate;
+    argumentTokenTypes: TokenType[];
+    candidates: CompletionCandidate[];
+    suppliedArgumentTokens: IToken[];
+  }) {
+    // Create a lookup hash for speedier lookup without iteration.
+    const suppliedArgumentsLookup = suppliedArgumentTokens.reduce(
+      (lookup, token) => {
+        lookup[token.tokenType.PATTERN.toString()] = true;
+        return lookup;
+      },
+      {} as { string: boolean }
+    );
+
+    argumentTokenTypes.forEach((argumentTokenType) => {
+      if (!suppliedArgumentsLookup[argumentTokenType.PATTERN.toString()]) {
+        candidates.push({
+          ...argumentAliasCandidate,
+          nextTokenType: argumentTokenType,
+        });
+      }
+    });
+  }
+
   private addStardogSpecificArgumentsToCompletionCandidates(
     candidates: CompletionCandidate[],
     tokenVectorForContentAssist: IToken[]
@@ -280,71 +361,48 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       'Directive/Arguments/Argument/Alias';
 
     if (isDirectiveArgument) {
-      let containingStardogDirective: IToken;
-      let parensStackCount = 1;
-
-      // Walk back through the tokens until we find the Stardog directive for
-      // which the currently located candidate is an argument (using parens
-      // matching).
-      for (
-        let i = tokenVectorForContentAssist.length - 1;
-        i >= 0 || parensStackCount < 0;
-        i--
-      ) {
-        const currentToken = tokenVectorForContentAssist[i];
-        if (
-          currentToken.tokenType.name === stardogGraphQlTokenMap.LParen.name
-        ) {
-          parensStackCount--;
-        } else if (
-          currentToken.tokenType.name === stardogGraphQlTokenMap.RParen.name
-        ) {
-          parensStackCount++;
-        }
-        if (
-          is(
-            currentToken.tokenType,
-            stardogGraphQlTokenMap.StardogDirective.name
-          ) &&
-          parensStackCount === 0
-        ) {
-          // When we have no extraneous parentheses and we've found a Stardog
-          // directive, we know we've got the Stardog-specific directive for
-          // which the candidate is an argument.
-          containingStardogDirective = currentToken;
-          break;
-        }
-      }
+      const {
+        containingFunctionToken: containingStardogDirective,
+        suppliedArgumentTokens,
+      } = getContainingFunctionSignature(
+        tokenVectorForContentAssist,
+        stardogGraphQlTokenMap.StardogDirective
+      );
 
       if (!containingStardogDirective) {
         return;
       }
 
       // Get the allowed argument aliases for the located Stardog-specific
-      // directive, and add them to the completion candidates.
+      // directive, and add them to the completion candidates, skipping those
+      // that have already been supplied as arguments.
       const argumentAliasTokenTypes = graphQlUtils.getArgumentTokenTypesForDirectiveNameToken(
         containingStardogDirective
       );
-      argumentAliasTokenTypes.forEach((argumentAliasTokenType) =>
-        candidates.push({
-          ...argumentAliasCandidate,
-          nextTokenType: argumentAliasTokenType,
-        })
-      );
+      this.addArgumentsToCandidatesWithoutDupes({
+        argumentAliasCandidate,
+        argumentTokenTypes: argumentAliasTokenTypes,
+        candidates,
+        suppliedArgumentTokens,
+      });
     } else {
-      // Non-directive argument.
+      // Non-directive argument. Get all allowed Stardog-specific arguments for
+      // the "level," and add them to the completion candidates, skipping those
+      // that have already been supplied as arguments.
       const isTopLevel = argumentAliasCandidate.ruleStack.includes(
         'SelectionSet'
       );
       const stardogSpecificArgumentsForLevel =
         stardogSpecificArguments[isTopLevel ? 'topLevel' : 'notTopLevel'];
-
-      stardogSpecificArgumentsForLevel.forEach((stardogSpecificArgument) =>
-        candidates.push({
-          ...argumentAliasCandidate,
-          nextTokenType: stardogSpecificArgument,
-        })
+      const { suppliedArgumentTokens } = getContainingFunctionSignature(
+        tokenVectorForContentAssist
       );
+      this.addArgumentsToCandidatesWithoutDupes({
+        argumentAliasCandidate,
+        argumentTokenTypes: stardogSpecificArgumentsForLevel,
+        candidates,
+        suppliedArgumentTokens,
+      });
     }
   }
 
