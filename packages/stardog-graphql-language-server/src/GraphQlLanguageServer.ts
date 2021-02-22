@@ -35,21 +35,44 @@ import {
 } from 'millan';
 
 const { stardogGraphQlTokenMap, stardogGraphQlTokens } = graphQlTokens;
-const stardogSpecificDirectives = stardogGraphQlTokens.filter(
-  (tokenType: TokenType) =>
-    tokenType === stardogGraphQlTokenMap.TypeToken ||
-    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogDirective)
-);
-const stardogSpecificArguments = stardogGraphQlTokens.filter(
-  (tokenType: TokenType) =>
-    tokenType === stardogGraphQlTokenMap.Skip ||
-    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogArgument)
-);
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
 const GRAPHQL_VALUE_TYPES = ['Int', 'Float', 'String', 'Boolean', 'Null'];
 
 const is = (tokenType: TokenType, name: string) =>
   tokenType.CATEGORIES.some((categoryToken) => categoryToken.name === name);
+
+const partitionTokenTypesByLevel = (
+  filter: (tokenType: TokenType) => Boolean
+) => {
+  const partitioned = {
+    topLevel: [] as TokenType[],
+    notTopLevel: [] as TokenType[],
+  };
+  stardogGraphQlTokens.filter(filter).forEach((tokenType: TokenType) => {
+    const level: keyof typeof partitioned = is(
+      tokenType,
+      stardogGraphQlTokenMap.TopLevel.name
+    )
+      ? 'topLevel'
+      : 'notTopLevel';
+    partitioned[level].push(tokenType);
+  });
+  return partitioned;
+};
+
+const stardogSpecificDirectives = partitionTokenTypesByLevel(
+  (tokenType) =>
+    tokenType === stardogGraphQlTokenMap.TypeToken ||
+    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogDirective)
+);
+const stardogSpecificArguments = partitionTokenTypesByLevel(
+  (tokenType) =>
+    tokenType === stardogGraphQlTokenMap.Skip ||
+    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogArgument)
+);
+const stardogSpecificArgumentNames = stardogSpecificArguments.topLevel
+  .concat(stardogSpecificArguments.notTopLevel)
+  .map((tokenType) => tokenType.PATTERN as string);
 
 @autoBindMethods
 export class GraphQlLanguageServer extends AbstractLanguageServer<
@@ -223,12 +246,8 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     }
 
     const isTopLevel = !directiveCandidate.ruleStack.includes('SelectionSet');
-    const stardogSpecificDirectivesForLevel = stardogSpecificDirectives.filter(
-      (directive) =>
-        isTopLevel
-          ? is(directive, stardogGraphQlTokenMap.TopLevel.name)
-          : !is(directive, stardogGraphQlTokenMap.TopLevel.name)
-    );
+    const stardogSpecificDirectivesForLevel =
+      stardogSpecificDirectives[isTopLevel ? 'topLevel' : 'notTopLevel'];
 
     stardogSpecificDirectivesForLevel.forEach((stardogSpecificDirective) =>
       candidates.push({
@@ -244,13 +263,16 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
   ) {
     // Find the candidate, if any, that is at the spot where an Argument Alias
     // is valid.
-    const argumentAliasCandidate = candidates.find(({ ruleStack }) => {
-      const ruleStackLength = ruleStack.length;
-      return (
-        ruleStack[ruleStackLength - 1] === 'Alias' &&
-        ruleStack[ruleStackLength - 2] === 'Argument'
-      );
-    });
+    const argumentAliasCandidate = candidates.find(
+      ({ nextTokenType, ruleStack }) => {
+        const ruleStackLength = ruleStack.length;
+        return (
+          !is(nextTokenType, 'Punctuator') &&
+          ruleStack[ruleStackLength - 1] === 'Alias' &&
+          ruleStack[ruleStackLength - 2] === 'Argument'
+        );
+      }
+    );
 
     if (!argumentAliasCandidate) {
       return;
@@ -317,12 +339,9 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       const isTopLevel = argumentAliasCandidate.ruleStack.includes(
         'SelectionSet'
       );
-      const stardogSpecificArgumentsForLevel = stardogSpecificArguments.filter(
-        (argument) =>
-          isTopLevel
-            ? is(argument, stardogGraphQlTokenMap.TopLevel.name)
-            : !is(argument, stardogGraphQlTokenMap.TopLevel.name)
-      );
+      const stardogSpecificArgumentsForLevel =
+        stardogSpecificArguments[isTopLevel ? 'topLevel' : 'notTopLevel'];
+
       stardogSpecificArgumentsForLevel.forEach((stardogSpecificArgument) =>
         candidates.push({
           ...argumentAliasCandidate,
@@ -383,16 +402,24 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       // These candidates are relevant only after at least one token.
       this.addStardogSpecificDirectivesToCompletionCandidates(candidates);
 
+      // We need to deal here with the literal text rather than just the tokens
+      // because commas are ignored in GraphQL.
       const firstNonWhitespaceBeforeCursor = document
         .getText()
         .slice(0, cursorOffset)
         .trim()
         .slice(-1);
 
+      // Argument aliases can appear after a parenthesis or a comma or as the
+      // continuation of a Name token.
       if (
         firstNonWhitespaceBeforeCursor ===
-          stardogGraphQlTokenMap.LParen.PATTERN ||
-        firstNonWhitespaceBeforeCursor === stardogGraphQlTokenMap.Comma.PATTERN
+          stardogGraphQlTokenMap.Comma.PATTERN ||
+        tokenBeforeCursor.tokenType === stardogGraphQlTokenMap.LParen ||
+        (isNameTokenImmediatelyBeforeCursor &&
+          stardogSpecificArgumentNames.some((argName) =>
+            argName.startsWith(tokenBeforeCursor.image)
+          ))
       ) {
         this.addStardogSpecificArgumentsToCompletionCandidates(
           candidates,
