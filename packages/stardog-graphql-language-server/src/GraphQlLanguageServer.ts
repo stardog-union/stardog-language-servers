@@ -49,10 +49,7 @@ const partitionTokenTypesByLevel = (
     notTopLevel: [] as TokenType[],
   };
   stardogGraphQlTokens.filter(filter).forEach((tokenType: TokenType) => {
-    const level: keyof typeof partitioned = is(
-      tokenType,
-      stardogGraphQlTokenMap.TopLevel.name
-    )
+    const level = is(tokenType, stardogGraphQlTokenMap.TopLevel.name)
       ? 'topLevel'
       : 'notTopLevel';
     partitioned[level].push(tokenType);
