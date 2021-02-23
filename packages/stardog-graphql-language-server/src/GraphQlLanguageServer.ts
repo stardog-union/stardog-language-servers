@@ -13,10 +13,6 @@ import {
   DiagnosticSeverity,
 } from 'vscode-languageserver';
 import uniqBy from 'lodash.uniqby';
-import {
-  StandardGraphQlParser,
-  StardogGraphQlParser,
-} from 'millan/dist/standalone/millan.graphql';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
   errorMessageProvider,
@@ -28,13 +24,100 @@ import {
   CompletionCandidate,
   ARBITRARILY_LARGE_NUMBER,
 } from 'stardog-language-utils';
-import { ISemanticError, TokenType } from 'millan';
+import {
+  ISemanticError,
+  TokenType,
+  graphQlTokens,
+  graphQlUtils,
+  IToken,
+  StandardGraphQlParser,
+  StardogGraphQlParser,
+} from 'millan';
 
+const { stardogGraphQlTokenMap, stardogGraphQlTokens } = graphQlTokens;
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
 const GRAPHQL_VALUE_TYPES = ['Int', 'Float', 'String', 'Boolean', 'Null'];
 
 const is = (tokenType: TokenType, name: string) =>
   tokenType.CATEGORIES.some((categoryToken) => categoryToken.name === name);
+
+const partitionTokenTypesByLevel = (
+  filter: (tokenType: TokenType) => Boolean
+) => {
+  const partitioned = {
+    topLevel: [] as TokenType[],
+    notTopLevel: [] as TokenType[],
+  };
+  stardogGraphQlTokens.filter(filter).forEach((tokenType: TokenType) => {
+    const level = is(tokenType, stardogGraphQlTokenMap.TopLevel.name)
+      ? 'topLevel'
+      : 'notTopLevel';
+    partitioned[level].push(tokenType);
+  });
+  return partitioned;
+};
+
+const getContainingFunctionSignature = (
+  tokenVector: IToken[],
+  containingFunctionTokenType: TokenType = stardogGraphQlTokenMap.Name
+) => {
+  const tokenVectorLength = tokenVector.length;
+  const suppliedArgumentTokens = [] as IToken[];
+  let parensStackCount = 1; // start with the assumption that we're within one set of parens
+  let containingFunctionToken: IToken;
+
+  for (
+    let indexInVector = tokenVectorLength - 1;
+    indexInVector >= 0 || parensStackCount < 0;
+    indexInVector--
+  ) {
+    const currentToken = tokenVector[indexInVector];
+
+    if (currentToken.tokenType.name === stardogGraphQlTokenMap.LParen.name) {
+      parensStackCount--;
+    } else if (
+      currentToken.tokenType.name === stardogGraphQlTokenMap.RParen.name
+    ) {
+      parensStackCount++;
+    }
+
+    if (
+      parensStackCount === 1 &&
+      is(currentToken.tokenType, 'StardogArgument')
+    ) {
+      suppliedArgumentTokens.push(currentToken);
+    }
+
+    if (
+      is(currentToken.tokenType, containingFunctionTokenType.name) &&
+      parensStackCount === 0
+    ) {
+      // When we have no extraneous parentheses and we've found a token of the
+      // `containingFunctionTokenType`, we know we've got the containing token.
+      containingFunctionToken = currentToken;
+      break;
+    }
+  }
+
+  return {
+    containingFunctionToken,
+    suppliedArgumentTokens,
+  };
+};
+
+const stardogSpecificDirectives = partitionTokenTypesByLevel(
+  (tokenType) =>
+    tokenType === stardogGraphQlTokenMap.TypeToken ||
+    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogDirective)
+);
+const stardogSpecificArguments = partitionTokenTypesByLevel(
+  (tokenType) =>
+    tokenType === stardogGraphQlTokenMap.Skip ||
+    tokenType.CATEGORIES.includes(stardogGraphQlTokenMap.StardogArgument)
+);
+const stardogSpecificArgumentNames = stardogSpecificArguments.topLevel
+  .concat(stardogSpecificArguments.notTopLevel)
+  .map((tokenType) => tokenType.PATTERN as string);
 
 @autoBindMethods
 export class GraphQlLanguageServer extends AbstractLanguageServer<
@@ -192,6 +275,137 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
     });
   }
 
+  private addStardogSpecificDirectivesToCompletionCandidates(
+    candidates: CompletionCandidate[]
+  ) {
+    // Find the candidate, if any, that is at the spot where a directive name
+    // is valid.
+    const directiveCandidate = candidates.find(
+      (candidate) =>
+        candidate.ruleStack[candidate.ruleStack.length - 1] === 'Directive' &&
+        candidate.nextTokenType.name !== stardogGraphQlTokenMap.At.name
+    );
+
+    if (!directiveCandidate) {
+      return;
+    }
+
+    const isTopLevel = !directiveCandidate.ruleStack.includes('SelectionSet');
+    const stardogSpecificDirectivesForLevel =
+      stardogSpecificDirectives[isTopLevel ? 'topLevel' : 'notTopLevel'];
+
+    stardogSpecificDirectivesForLevel.forEach((stardogSpecificDirective) =>
+      candidates.push({
+        ...directiveCandidate,
+        nextTokenType: stardogSpecificDirective,
+      })
+    );
+  }
+
+  // NOTE: This method assumes that all relevant tokenTypes have unique
+  // patterns. This is not true when a token is "abstract", i.e., has Lexer.NA
+  // as the pattern. Do not use this method when those tokens are possible.
+  private addArgumentsToCandidatesWithoutDupes({
+    argumentAliasCandidate,
+    argumentTokenTypes,
+    candidates,
+    suppliedArgumentTokens,
+  }: {
+    argumentAliasCandidate: CompletionCandidate;
+    argumentTokenTypes: TokenType[];
+    candidates: CompletionCandidate[];
+    suppliedArgumentTokens: IToken[];
+  }) {
+    // Create a lookup hash for speedier lookup without iteration.
+    const suppliedArgumentsLookup = suppliedArgumentTokens.reduce(
+      (lookup, token) => {
+        lookup[token.tokenType.PATTERN.toString()] = true;
+        return lookup;
+      },
+      {} as { string: boolean }
+    );
+
+    argumentTokenTypes.forEach((argumentTokenType) => {
+      if (!suppliedArgumentsLookup[argumentTokenType.PATTERN.toString()]) {
+        candidates.push({
+          ...argumentAliasCandidate,
+          nextTokenType: argumentTokenType,
+        });
+      }
+    });
+  }
+
+  private addStardogSpecificArgumentsToCompletionCandidates(
+    candidates: CompletionCandidate[],
+    tokenVectorForContentAssist: IToken[]
+  ) {
+    // Find the candidate, if any, that is at the spot where an Argument Alias
+    // is valid.
+    const argumentAliasCandidate = candidates.find(
+      ({ nextTokenType, ruleStack }) => {
+        const ruleStackLength = ruleStack.length;
+        return (
+          !is(nextTokenType, 'Punctuator') &&
+          ruleStack[ruleStackLength - 1] === 'Alias' &&
+          ruleStack[ruleStackLength - 2] === 'Argument'
+        );
+      }
+    );
+
+    if (!argumentAliasCandidate) {
+      return;
+    }
+
+    const isDirectiveArgument =
+      argumentAliasCandidate.ruleStack.slice(-4).join('/') ===
+      'Directive/Arguments/Argument/Alias';
+
+    if (isDirectiveArgument) {
+      const {
+        containingFunctionToken: containingStardogDirective,
+        suppliedArgumentTokens,
+      } = getContainingFunctionSignature(
+        tokenVectorForContentAssist,
+        stardogGraphQlTokenMap.StardogDirective
+      );
+
+      if (!containingStardogDirective) {
+        return;
+      }
+
+      // Get the allowed argument aliases for the located Stardog-specific
+      // directive, and add them to the completion candidates, skipping those
+      // that have already been supplied as arguments.
+      const argumentAliasTokenTypes = graphQlUtils.getArgumentTokenTypesForDirectiveNameToken(
+        containingStardogDirective
+      );
+      this.addArgumentsToCandidatesWithoutDupes({
+        argumentAliasCandidate,
+        argumentTokenTypes: argumentAliasTokenTypes,
+        candidates,
+        suppliedArgumentTokens,
+      });
+    } else {
+      // Non-directive argument. Get all allowed Stardog-specific arguments for
+      // the "level," and add them to the completion candidates, skipping those
+      // that have already been supplied as arguments.
+      const isTopLevel = argumentAliasCandidate.ruleStack.includes(
+        'SelectionSet'
+      );
+      const stardogSpecificArgumentsForLevel =
+        stardogSpecificArguments[isTopLevel ? 'topLevel' : 'notTopLevel'];
+      const { suppliedArgumentTokens } = getContainingFunctionSignature(
+        tokenVectorForContentAssist
+      );
+      this.addArgumentsToCandidatesWithoutDupes({
+        argumentAliasCandidate,
+        argumentTokenTypes: stardogSpecificArgumentsForLevel,
+        candidates,
+        suppliedArgumentTokens,
+      });
+    }
+  }
+
   handleCompletion(params: TextDocumentPositionParams): CompletionItem[] {
     const { uri } = params.textDocument;
     const document = this.documents.get(uri);
@@ -238,6 +452,36 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       'Document',
       tokenVectorForContentAssist
     );
+
+    if (tokenVectorForContentAssist.length > 0) {
+      // These candidates are relevant only after at least one token.
+      this.addStardogSpecificDirectivesToCompletionCandidates(candidates);
+
+      // We need to deal here with the literal text rather than just the tokens
+      // because commas are ignored in GraphQL.
+      const firstNonWhitespaceBeforeCursor = document
+        .getText()
+        .slice(0, cursorOffset)
+        .trim()
+        .slice(-1);
+
+      // Argument aliases can appear after a parenthesis or a comma or as the
+      // continuation of a Name token.
+      if (
+        firstNonWhitespaceBeforeCursor ===
+          stardogGraphQlTokenMap.Comma.PATTERN ||
+        tokenBeforeCursor.tokenType === stardogGraphQlTokenMap.LParen ||
+        (isNameTokenImmediatelyBeforeCursor &&
+          stardogSpecificArgumentNames.some((argName) =>
+            argName.startsWith(tokenBeforeCursor.image)
+          ))
+      ) {
+        this.addStardogSpecificArgumentsToCompletionCandidates(
+          candidates,
+          tokenVectorForContentAssist
+        );
+      }
+    }
 
     const replaceTokenAtCursor = (
       replacement: string,

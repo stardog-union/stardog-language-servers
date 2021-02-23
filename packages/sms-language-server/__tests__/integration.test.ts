@@ -64,17 +64,17 @@ describe('sms language server', () => {
 
       expect(params.diagnostics).toMatchObject([
         {
-          message: 'SqlBlock expected.',
+          message: 'Expecting token of type --> SqlBlock <-- but found --> \'select\' <--',
           source: 'SqlClause',
           severity: 1,
           range: {
             start: {
               line: 0,
-              character: 46,
+              character: 33,
             },
             end: {
               line: 0,
-              character: 47,
+              character: 39,
             },
           },
         },

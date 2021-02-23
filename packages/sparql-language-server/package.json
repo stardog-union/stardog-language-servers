@@ -58,8 +58,8 @@
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniqby": "^4.7.0",
     "memoize-one": "^5.1.1",
-    "millan": "^4.0.1",
-    "stardog-language-utils": "^1.10.1",
+    "millan": "^5.0.0",
+    "stardog-language-utils": "^1.12.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {

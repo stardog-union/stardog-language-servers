@@ -15,8 +15,6 @@ import {
   StardogSparqlParser,
   W3SpecSparqlParser,
   sparqlKeywords,
-  sparqlTokens,
-  TokenType,
 } from 'millan';
 import { autoBindMethods } from 'class-autobind-decorator';
 import {
@@ -166,44 +164,6 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
     return fullList;
   }
 
-  addLongerAltsToCandidates(
-    candidates: CompletionCandidate[],
-    tokens: { beforeCursor: IToken; atCursor: IToken }
-  ) {
-    const { beforeCursor: tokenBeforeCursor, atCursor: tokenAtCursor } = tokens;
-    const combinedImage = `${tokenBeforeCursor.image}${tokenAtCursor.image}`;
-    sparqlTokens.sparqlTokenTypes.forEach((token: TokenType) => {
-      let isMatch = false;
-
-      // TODO: A fuzzy search would be better than a `startsWith` here, but
-      // this is good enough for now.
-      if (typeof token.PATTERN === 'string') {
-        isMatch = token.PATTERN.startsWith(combinedImage);
-      } else {
-        const { source, flags } = token.PATTERN;
-        isMatch =
-          source.startsWith(combinedImage) ||
-          (flags.includes('i') &&
-            source.toLowerCase().startsWith(combinedImage.toLowerCase()));
-      }
-
-      if (isMatch) {
-        candidates.push({
-          nextTokenType: token,
-          replacementRange: {
-            start: tokenBeforeCursor.startOffset,
-            end: tokenAtCursor.endOffset + 1,
-          },
-          // Unfortunately, we can't compute these later values here.
-          // Fortunately, we don't really need them for these purposes.
-          nextTokenOccurrence: 0,
-          occurrenceStack: [],
-          ruleStack: [],
-        });
-      }
-    });
-  }
-
   replaceTokenAtCursor({
     document,
     replacement,
@@ -314,28 +274,6 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       'SparqlDoc',
       tokensUpToCursor
     );
-
-    if (
-      tokenBeforeCursor &&
-      tokenAtCursor.startOffset === tokenBeforeCursor.endOffset + 1
-    ) {
-      // Since there is no space between this token and the previous one,
-      // the character at the current position _could_ be a continuation of a
-      // longer image for some other token that just hasn't been fully written
-      // out yet -- e.g., when the user is typing 'strs', 'str' can match the
-      // `STR` token and 's' can match the 'Unknown' token, but it's _also_
-      // possible that the user was typing out `strstarts` and would like to
-      // receive `STRSTARTS` as a possible token match. The check here accounts
-      // for those possible longer matches. (NOTE: It doesn't seem possible to
-      // do this _just_ with chevrotain. chevrotain does provide a `longer_alt`
-      // property for tokens, but only ONE token can be provided as the alt. In
-      // the example just described, there are _many_ longer tokens that all
-      // start with 'str'.)
-      this.addLongerAltsToCandidates(candidates, {
-        beforeCursor: tokenBeforeCursor,
-        atCursor: tokenAtCursor,
-      });
-    }
 
     const variableCompletions: CompletionItem[] = vars.map((variable) => {
       return {
