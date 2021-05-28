@@ -1,6 +1,6 @@
 {
   "name": "turtle-language-server",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/TurtleLanguageServer.d.ts",
