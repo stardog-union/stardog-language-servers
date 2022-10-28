@@ -12,10 +12,15 @@ const abbreviate = (
   );
   if (result && result[3]) {
     const localName = result[3];
+    const validateLocalName = (localName: string) =>
+      new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName);
     // If newIri still equals oldIri, we know that this is the first match.
     // Otherwise, if the new result is shorter than the previous result, we
     // prefer the new because it is necessarily more specific.
-    if (newIri === oldIri || localName.length < newIri.length) {
+    if (
+      (newIri === oldIri || localName.length < newIri.length) &&
+      validateLocalName(localName)
+    ) {
       return `${alias}:${localName}`;
     }
   }
@@ -26,9 +31,6 @@ export const splitNamespace = (namespace: string) => {
   const [alias, ...splitPrefix] = namespace.split('=');
   return [alias, splitPrefix.join('=')];
 };
-
-export const validateLocalName = (localName) =>
-  new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName);
 
 export const abbreviatePrefixArray = (
   oldIri: string,
@@ -45,16 +47,7 @@ export const abbreviatePrefixArray = (
         // TODO Can there ever be multiple prefixes in a column? If not, we should
         // break the reduce once replace is successful.
         const [alias, prefix] = splitNamespace(row);
-        const abbreviated = abbreviate(prefix, alias, oldIri, newIri);
-
-        // Check if local name is valid
-        if (
-          abbreviated !== oldIri &&
-          validateLocalName(abbreviated.split(':')[1])
-        )
-          return abbreviated;
-
-        return oldIri;
+        return abbreviate(prefix, alias, oldIri, newIri);
       }, oldIri);
 
 export const abbreviatePrefixObj = (
@@ -65,13 +58,7 @@ export const abbreviatePrefixObj = (
 ): string =>
   Object.keys(namespaces).reduce((newIri, alias) => {
     const prefix = namespaces[alias];
-    const abbreviated = abbreviate(prefix, alias, oldIri, newIri);
-
-    // Check if local name is valid
-    if (abbreviated !== oldIri && validateLocalName(abbreviated.split(':')[1]))
-      return abbreviated;
-
-    return oldIri;
+    return abbreviate(prefix, alias, oldIri, newIri);
   }, oldIri);
 
 export const namespaceObjToArray = (obj) =>
