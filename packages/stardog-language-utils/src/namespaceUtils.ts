@@ -27,8 +27,8 @@ export const splitNamespace = (namespace: string) => {
   return [alias, splitPrefix.join('=')];
 };
 
-export const validateLocalName = (newIri) =>
-  new RegExp(`^${matchers.PN_LOCAL.source}$`).test(newIri);
+export const validateLocalName = (localName) =>
+  new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName);
 
 export const abbreviatePrefixArray = (
   oldIri: string,
