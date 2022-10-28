@@ -1,4 +1,5 @@
 import escape from 'escape-string-regexp';
+import { matchers } from 'millan';
 
 const abbreviate = (
   prefix: string,
@@ -26,37 +27,50 @@ export const splitNamespace = (namespace: string) => {
   return [alias, splitPrefix.join('=')];
 };
 
+export const validateLocalName = (ns, oldIri) => {
+  const isLocalNameValid = matchers.PN_LOCAL.test(ns.split(':')[1]);
+
+  return isLocalNameValid ? ns : oldIri;
+};
+
 export const abbreviatePrefixArray = (
   oldIri: string,
   namespaces: string[] = []
-): string =>
+): string => {
   // No need to run the reduce if we know it'll never match.
-  !oldIri
-    ? oldIri
-    : namespaces.reduce(
-        // Starting with the old IRI, go through each prefix in the namespaces
-        // object and try to replace the prefix with its alias in the
-        // IRI string.
+  if (!oldIri) {
+    return oldIri;
+  }
 
-        // TODO Can there ever be multiple prefixes in a column? If not, we should
-        // break the reduce once replace is successful.
-        (newIri, row) => {
-          const [alias, prefix] = splitNamespace(row);
-          return abbreviate(prefix, alias, oldIri, newIri);
-        },
-        oldIri
-      );
+  const ns = namespaces.reduce((newIri, row) => {
+    // Starting with the old IRI, go through each prefix in the namespaces
+    // object and try to replace the prefix with its alias in the
+    // IRI string.
+
+    // TODO Can there ever be multiple prefixes in a column? If not, we should
+    // break the reduce once replace is successful.
+    const [alias, prefix] = splitNamespace(row);
+
+    return abbreviate(prefix, alias, oldIri, newIri);
+  }, oldIri);
+
+  return validateLocalName(ns, oldIri);
+};
 
 export const abbreviatePrefixObj = (
   oldIri: string,
   namespaces: {
     [alias: string]: string;
   }
-): string =>
-  Object.keys(namespaces).reduce((newIri, alias) => {
+): string => {
+  const ns = Object.keys(namespaces).reduce((newIri, alias) => {
     const prefix = namespaces[alias];
+
     return abbreviate(prefix, alias, oldIri, newIri);
   }, oldIri);
+
+  return validateLocalName(ns, oldIri);
+};
 
 export const namespaceObjToArray = (obj) =>
   Object.keys(obj).map((alias) => {
