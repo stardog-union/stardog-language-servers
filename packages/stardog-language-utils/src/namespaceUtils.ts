@@ -12,14 +12,12 @@ const abbreviate = (
   );
   if (result && result[3]) {
     const localName = result[3];
-    const validateLocalName = (localName: string) =>
-      new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName);
     // If newIri still equals oldIri, we know that this is the first match.
     // Otherwise, if the new result is shorter than the previous result, we
     // prefer the new because it is necessarily more specific.
     if (
       (newIri === oldIri || localName.length < newIri.length) &&
-      validateLocalName(localName)
+      new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName)
     ) {
       return `${alias}:${localName}`;
     }
