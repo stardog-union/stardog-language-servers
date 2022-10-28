@@ -17,6 +17,7 @@ const abbreviate = (
     // prefer the new because it is necessarily more specific.
     if (
       (newIri === oldIri || localName.length < newIri.length) &&
+      // Check if local name is valid
       new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName)
     ) {
       return `${alias}:${localName}`;
