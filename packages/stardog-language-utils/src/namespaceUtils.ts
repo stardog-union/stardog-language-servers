@@ -27,50 +27,52 @@ export const splitNamespace = (namespace: string) => {
   return [alias, splitPrefix.join('=')];
 };
 
-export const validateLocalName = (ns, oldIri) => {
-  const isLocalNameValid = matchers.PN_LOCAL.test(ns.split(':')[1]);
-
-  return isLocalNameValid ? ns : oldIri;
-};
+export const validateLocalName = (newIri) =>
+  new RegExp(`^${matchers.PN_LOCAL.source}$`).test(newIri);
 
 export const abbreviatePrefixArray = (
   oldIri: string,
   namespaces: string[] = []
-): string => {
+): string =>
   // No need to run the reduce if we know it'll never match.
-  if (!oldIri) {
-    return oldIri;
-  }
+  !oldIri
+    ? oldIri
+    : namespaces.reduce((newIri, row) => {
+        // Starting with the old IRI, go through each prefix in the namespaces
+        // object and try to replace the prefix with its alias in the
+        // IRI string.
 
-  const ns = namespaces.reduce((newIri, row) => {
-    // Starting with the old IRI, go through each prefix in the namespaces
-    // object and try to replace the prefix with its alias in the
-    // IRI string.
+        // TODO Can there ever be multiple prefixes in a column? If not, we should
+        // break the reduce once replace is successful.
+        const [alias, prefix] = splitNamespace(row);
+        const abbreviated = abbreviate(prefix, alias, oldIri, newIri);
 
-    // TODO Can there ever be multiple prefixes in a column? If not, we should
-    // break the reduce once replace is successful.
-    const [alias, prefix] = splitNamespace(row);
+        // Check if local name is valid
+        if (
+          abbreviated !== oldIri &&
+          validateLocalName(abbreviated.split(':')[1])
+        )
+          return abbreviated;
 
-    return abbreviate(prefix, alias, oldIri, newIri);
-  }, oldIri);
-
-  return validateLocalName(ns, oldIri);
-};
+        return oldIri;
+      }, oldIri);
 
 export const abbreviatePrefixObj = (
   oldIri: string,
   namespaces: {
     [alias: string]: string;
   }
-): string => {
-  const ns = Object.keys(namespaces).reduce((newIri, alias) => {
+): string =>
+  Object.keys(namespaces).reduce((newIri, alias) => {
     const prefix = namespaces[alias];
+    const abbreviated = abbreviate(prefix, alias, oldIri, newIri);
 
-    return abbreviate(prefix, alias, oldIri, newIri);
+    // Check if local name is valid
+    if (abbreviated !== oldIri && validateLocalName(abbreviated.split(':')[1]))
+      return abbreviated;
+
+    return oldIri;
   }, oldIri);
-
-  return validateLocalName(ns, oldIri);
-};
 
 export const namespaceObjToArray = (obj) =>
   Object.keys(obj).map((alias) => {
