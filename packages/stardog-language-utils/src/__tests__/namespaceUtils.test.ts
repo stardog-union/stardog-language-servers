@@ -82,12 +82,21 @@ describe('abbreviatePrefixArray and abbreviatePrefixObj', () => {
     testArrayAndObj('http://foo.org/bar/fizz/buzz', namespaces, 'fizz:buzz');
     testArrayAndObj('http://foo.org/bar/fizz/buzz', namespaces1, 'fizz:buzz');
   });
-  it('removes ecape characters when abbreviating IRIs', () => {
+  it('should not abbreviate IRIs when invalid characters are not escaped', () => {
     const namespaces = ['foo=http://foo.org/'];
     testArrayAndObj(
       'http://foo.org/bar/fizz/buzz_!&?#@%.',
       namespaces,
-      'foo:bar/fizz/buzz_!&?#@%.'
+      'http://foo.org/bar/fizz/buzz_!&?#@%.'
+    );
+  });
+  it('should not abbreviate an invalid local name', () => {
+    const namespaces = ['foo=http://foo.org/'];
+    const iri = 'http://foo.org/bar/fizz/';
+    const expected = 'foo:bar/fizz';
+
+    expect(abbreviatePrefixObj(iri, namespaceArrayToObj(namespaces))).not.toBe(
+      expected
     );
   });
 });

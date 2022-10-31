@@ -1,4 +1,5 @@
 import escape from 'escape-string-regexp';
+import { matchers } from 'millan';
 
 const abbreviate = (
   prefix: string,
@@ -14,7 +15,11 @@ const abbreviate = (
     // If newIri still equals oldIri, we know that this is the first match.
     // Otherwise, if the new result is shorter than the previous result, we
     // prefer the new because it is necessarily more specific.
-    if (newIri === oldIri || localName.length < newIri.length) {
+    if (
+      (newIri === oldIri || localName.length < newIri.length) &&
+      // Check if local name is valid
+      new RegExp(`^${matchers.PN_LOCAL.source}$`).test(localName)
+    ) {
       return `${alias}:${localName}`;
     }
   }
@@ -33,19 +38,16 @@ export const abbreviatePrefixArray = (
   // No need to run the reduce if we know it'll never match.
   !oldIri
     ? oldIri
-    : namespaces.reduce(
+    : namespaces.reduce((newIri, row) => {
         // Starting with the old IRI, go through each prefix in the namespaces
         // object and try to replace the prefix with its alias in the
         // IRI string.
 
         // TODO Can there ever be multiple prefixes in a column? If not, we should
         // break the reduce once replace is successful.
-        (newIri, row) => {
-          const [alias, prefix] = splitNamespace(row);
-          return abbreviate(prefix, alias, oldIri, newIri);
-        },
-        oldIri
-      );
+        const [alias, prefix] = splitNamespace(row);
+        return abbreviate(prefix, alias, oldIri, newIri);
+      }, oldIri);
 
 export const abbreviatePrefixObj = (
   oldIri: string,
