@@ -4,6 +4,7 @@ import {
   namespaceObjToArray,
   namespaceArrayToObj,
   abbreviatePrefixObj,
+  unescapeString,
 } from '../namespaceUtils';
 
 describe('splitNamespace', () => {
@@ -97,6 +98,15 @@ describe('abbreviatePrefixArray and abbreviatePrefixObj', () => {
 
     expect(abbreviatePrefixObj(iri, namespaceArrayToObj(namespaces))).not.toBe(
       expected
+    );
+  });
+});
+
+describe('unescapeString', () => {
+  it('unescaped a string with escaped 4 digit unicode sequences', () => {
+    const string = 'S\\u0045LECT * \\u007B ?s ?p ?o \\u007D';
+    expect(unescapeString(string).unescapedString).toMatch(
+      'SELECT * { ?s ?p ?o }'
     );
   });
 });

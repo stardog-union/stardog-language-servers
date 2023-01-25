@@ -16,7 +16,7 @@ import {
   TextDocumentChangeEvent,
   TextDocumentPositionParams,
 } from 'vscode-languageserver';
-import { Parser, IToken } from 'chevrotain';
+import { Parser, IToken, IRecognitionException } from 'chevrotain';
 import { IStardogParser, isCstNode, traverse, ISemanticError } from 'millan';
 import { ParseStateManager, getParseStateManager } from './parseState';
 
@@ -116,6 +116,104 @@ export abstract class AbstractLanguageServer<
     this.connection.onRequest(this.handleUnhandledRequest.bind(this));
     this.connection.onHover(this.handleHover.bind(this));
     return this.onInitialization(params);
+  }
+
+  adjustCstForEscapedText(
+    input: Object | Object[],
+    indexMap: Map<number, number>
+  ) {
+    if (Array.isArray(input)) {
+      return input.map((child) =>
+        this.adjustCstForEscapedText(child, indexMap)
+      );
+    } else if (typeof input === 'object' && input !== null) {
+      if (input.hasOwnProperty('endColumn')) {
+        return this.adjustTokenForEscapedText(input as IToken, indexMap);
+      }
+      const newInput = { ...input };
+      Object.keys(newInput).forEach((key) => {
+        newInput[key] = this.adjustCstForEscapedText(newInput[key], indexMap);
+      });
+      return newInput;
+    } else {
+      return input;
+    }
+  }
+
+  adjustErrorsForEscapedText(
+    errors: IRecognitionException[],
+    indexMap: Map<number, number>
+  ) {
+    return errors.map((error) =>
+      this.adjustErrorForEscapedText(error, indexMap)
+    );
+  }
+
+  adjustErrorForEscapedText(
+    error: IRecognitionException,
+    indexMap: Map<number, number>
+  ) {
+    const newError: IRecognitionException = { ...error };
+    if (newError.token) {
+      newError.token = this.adjustTokenForEscapedText(newError.token, indexMap);
+    }
+    // @ts-ignore apparently errors from the parser are IRecognitionError[]
+    // according to chevrotain, but they do not have the `previousToken` property
+    if (newError.previousToken) {
+      // @ts-ignore
+      newError.previousToken = this.adjustTokenForEscapedText(
+        // @ts-ignore
+        newError.previousToken,
+        indexMap
+      );
+    }
+    if (newError.resyncedTokens) {
+      newError.resyncedTokens = newError.resyncedTokens.map((token) =>
+        this.adjustTokenForEscapedText(token, indexMap)
+      );
+    }
+    return newError;
+  }
+
+  adjustTokenForEscapedText(token: IToken, indexMap: Map<number, number>) {
+    const newToken: IToken = { ...token };
+    [
+      newToken.startOffset,
+      newToken.endOffset,
+    ] = this.adjustPositionsForEscapedText(
+      newToken.startOffset,
+      newToken.endOffset,
+      indexMap
+    );
+    [newToken.startColumn, newToken.endColumn] = [
+      newToken.startOffset + 1,
+      newToken.endOffset + 1,
+    ];
+    return newToken;
+  }
+
+  adjustPositionsForEscapedText(
+    startPosition: number,
+    endPosition: number,
+    indexMap: Map<number, number>
+  ): [number, number] {
+    let adjustStartNum = 0;
+    let adjustEndNum = 0;
+    for (const [index, value] of indexMap) {
+      if (startPosition <= index) {
+        if (endPosition >= index) {
+          adjustEndNum += value;
+        } else {
+          break;
+        }
+      } else {
+        adjustStartNum += value;
+        adjustEndNum += value;
+      }
+    }
+    const newStartPosition = startPosition + adjustStartNum;
+    const newEndPosition = endPosition + adjustEndNum;
+    return [newStartPosition, newEndPosition];
   }
 
   abstract onContentChange(

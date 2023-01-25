@@ -34,6 +34,7 @@ import {
   getCommonCompletionItemsGivenNamespaces,
   makeCompletionItemFromPrefixedNameAndNamespaceIri,
   ARBITRARILY_LARGE_NUMBER,
+  unescapeString,
 } from 'stardog-language-utils';
 import uniqBy from 'lodash.uniqby';
 import { IToken } from 'chevrotain';
@@ -88,6 +89,35 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         foldingRangeProvider: true,
         hoverProvider: true,
       },
+    };
+  }
+
+  parseDocument(
+    document: TextDocument
+  ): ReturnType<
+    AbstractLanguageServer<
+      StardogSparqlParser | W3SpecSparqlParser
+    >['parseDocument']
+  > {
+    const content = document.getText();
+    const { indexMap, unescapedString } = unescapeString(content);
+    const { cst, errors, ...otherParseData } = this.parser.parse(
+      unescapedString
+    );
+    const tokens = this.parser.input;
+
+    return {
+      cst: indexMap.size ? this.adjustCstForEscapedText(cst, indexMap) : cst,
+      tokens: indexMap.size
+        ? tokens.map((token) => this.adjustTokenForEscapedText(token, indexMap))
+        : tokens,
+      errors: indexMap.size
+        ? this.adjustErrorsForEscapedText(errors, indexMap)
+        : errors,
+      otherParseData: otherParseData as Omit<
+        ReturnType<StardogSparqlParser['parse']>,
+        'cst' | 'errors'
+      >,
     };
   }
 
