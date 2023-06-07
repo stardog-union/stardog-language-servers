@@ -111,8 +111,10 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
         this.relationshipBindings.map((binding) => ({
-          iri: binding && binding.relationship && binding.relationship.value,
-          count: binding && binding.count && binding.count.value,
+          iri:
+            (binding && binding.relationship && binding.relationship.value) ||
+            '',
+          count: (binding && binding.count && binding.count.value) || '',
         }))
       );
     }
@@ -121,8 +123,8 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
         this.typeBindings.map((binding) => ({
-          iri: binding && binding.type && binding.type.value,
-          count: binding && binding.count && binding.count.value,
+          iri: (binding && binding.type && binding.type.value) || '',
+          count: (binding && binding.count && binding.count.value) || '',
         }))
       );
     }
