@@ -1,38 +1,38 @@
-import {
-  InitializeResult,
-  TextDocumentChangeEvent,
-  InitializeParams,
-  IConnection,
-  TextDocumentPositionParams,
-  CompletionItem,
-  Range,
-  TextEdit,
-  CompletionItemKind,
-  TextDocument,
-  Diagnostic,
-  DiagnosticSeverity,
-} from 'vscode-languageserver';
-import uniqBy from 'lodash.uniqby';
 import { autoBindMethods } from 'class-autobind-decorator';
-import {
-  errorMessageProvider,
-  abbreviatePrefixObj,
-  namespaceArrayToObj,
-  LSPExtensionMethod,
-  SparqlCompletionData,
-  AbstractLanguageServer,
-  CompletionCandidate,
-  ARBITRARILY_LARGE_NUMBER,
-} from 'stardog-language-utils';
+import uniqBy from 'lodash.uniqby';
 import {
   ISemanticError,
-  TokenType,
-  graphQlTokens,
-  graphQlUtils,
   IToken,
   StandardGraphQlParser,
   StardogGraphQlParser,
+  TokenType,
+  graphQlTokens,
+  graphQlUtils,
 } from 'millan';
+import {
+  ARBITRARILY_LARGE_NUMBER,
+  AbstractLanguageServer,
+  CompletionCandidate,
+  LSPExtensionMethod,
+  SparqlCompletionData,
+  abbreviatePrefixObj,
+  errorMessageProvider,
+  namespaceArrayToObj,
+} from 'stardog-language-utils';
+import {
+  CompletionItem,
+  CompletionItemKind,
+  Diagnostic,
+  DiagnosticSeverity,
+  IConnection,
+  InitializeParams,
+  InitializeResult,
+  Range,
+  TextDocument,
+  TextDocumentChangeEvent,
+  TextDocumentPositionParams,
+  TextEdit,
+} from 'vscode-languageserver';
 
 const { stardogGraphQlTokenMap, stardogGraphQlTokens } = graphQlTokens;
 const SPARQL_ERROR_PREFIX = 'SPARQL Error: ';
@@ -188,10 +188,19 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         update.relationshipBindings || this.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.relationshipBindings.map((binding) => ({
-          iri: binding.relationship.value,
-          count: binding.count.value,
-        })),
+        this.relationshipBindings
+          .map((binding) => ({
+            iri:
+              (binding && binding.relationship && binding.relationship.value) ||
+              undefined,
+            count:
+              binding && binding.count && binding.count.value != undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => {
+            return iri != undefined && count != undefined;
+          }),
         CompletionItemKind.Field
       );
     }
@@ -199,10 +208,17 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
       this.typeBindings = update.typeBindings || this.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.typeBindings.map((binding) => ({
-          iri: binding.type.value,
-          count: binding.count.value,
-        })),
+        this.typeBindings
+          .map((binding) => ({
+            iri: (binding && binding.type && binding.type.value) || undefined,
+            count:
+              binding && binding.count && binding.count.value != undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => {
+            return iri != undefined && count != undefined;
+          }),
         CompletionItemKind.EnumMember
       );
     }
