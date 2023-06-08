@@ -1,3 +1,29 @@
+import { IToken } from 'chevrotain';
+import { autoBindMethods } from 'class-autobind-decorator';
+import uniqBy from 'lodash.uniqby';
+import {
+  StardogSparqlParser,
+  W3SpecSparqlParser,
+  sparqlKeywords,
+} from 'millan';
+import {
+  ARBITRARILY_LARGE_NUMBER,
+  AbstractLanguageServer,
+  CompletionCandidate,
+  LSPExtensionMethod,
+  SparqlCompletionData,
+  abbreviatePrefixObj,
+  errorMessageProvider,
+  getCommonCompletionItemsGivenNamespaces,
+  getUniqueIdentifiers,
+  isIriRef,
+  isLocalName,
+  isPrefix,
+  isVar,
+  makeCompletionItemFromPrefixedNameAndNamespaceIri,
+  namespaceArrayToObj,
+  regexPatternToString,
+} from 'stardog-language-utils';
 import {
   CompletionItem,
   CompletionItemKind,
@@ -11,32 +37,6 @@ import {
   TextDocumentPositionParams,
   TextEdit,
 } from 'vscode-languageserver';
-import {
-  StardogSparqlParser,
-  W3SpecSparqlParser,
-  sparqlKeywords,
-} from 'millan';
-import { autoBindMethods } from 'class-autobind-decorator';
-import {
-  getUniqueIdentifiers,
-  isVar,
-  isPrefix,
-  isLocalName,
-  isIriRef,
-  regexPatternToString,
-  errorMessageProvider,
-  abbreviatePrefixObj,
-  namespaceArrayToObj,
-  LSPExtensionMethod,
-  SparqlCompletionData,
-  AbstractLanguageServer,
-  CompletionCandidate,
-  getCommonCompletionItemsGivenNamespaces,
-  makeCompletionItemFromPrefixedNameAndNamespaceIri,
-  ARBITRARILY_LARGE_NUMBER,
-} from 'stardog-language-utils';
-import uniqBy from 'lodash.uniqby';
-import { IToken } from 'chevrotain';
 
 @autoBindMethods
 export class SparqlLanguageServer extends AbstractLanguageServer<
@@ -110,20 +110,30 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         update.relationshipBindings || this.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.relationshipBindings.map((binding) => ({
-          iri: binding.relationship.value,
-          count: binding.count.value,
-        }))
+        this.relationshipBindings
+          .map((binding) => ({
+            iri: binding && binding.relationship && binding.relationship.value,
+            count:
+              binding && binding.count && binding.count.value !== undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => iri !== undefined && count !== undefined)
       );
     }
     if (update.typeBindings || (update.namespaces && this.typeBindings)) {
       this.typeBindings = update.typeBindings || this.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.typeBindings.map((binding) => ({
-          iri: binding.type.value,
-          count: binding.count.value,
-        }))
+        this.typeBindings
+          .map((binding) => ({
+            iri: binding && binding.type && binding.type.value,
+            count:
+              binding && binding.count && binding.count.value !== undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => iri !== undefined && count !== undefined)
       );
     }
   }
