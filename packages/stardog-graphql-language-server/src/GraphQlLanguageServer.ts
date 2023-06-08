@@ -191,16 +191,17 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         this.relationshipBindings
           .map((binding) => ({
             iri:
-              (binding && binding.relationship && binding.relationship.value) ||
-              undefined,
+              binding &&
+              binding.relationship &&
+              binding.relationship.value !== undefined
+                ? binding.relationship.value
+                : undefined,
             count:
-              binding && binding.count && binding.count.value != undefined
+              binding && binding.count && binding.count.value !== undefined
                 ? binding.count.value
                 : undefined,
           }))
-          .filter(({ iri, count }) => {
-            return iri != undefined && count != undefined;
-          }),
+          .filter(({ iri, count }) => iri !== undefined && count !== undefined),
         CompletionItemKind.Field
       );
     }
@@ -210,15 +211,16 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         this.namespaceMap,
         this.typeBindings
           .map((binding) => ({
-            iri: (binding && binding.type && binding.type.value) || undefined,
+            iri:
+              binding && binding.type && binding.type.value !== undefined
+                ? binding.type.value
+                : undefined,
             count:
-              binding && binding.count && binding.count.value != undefined
+              binding && binding.count && binding.count.value !== undefined
                 ? binding.count.value
                 : undefined,
           }))
-          .filter(({ iri, count }) => {
-            return iri != undefined && count != undefined;
-          }),
+          .filter(({ iri, count }) => iri !== undefined && count !== undefined),
         CompletionItemKind.EnumMember
       );
     }
