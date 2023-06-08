@@ -190,12 +190,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         this.namespaceMap,
         this.relationshipBindings
           .map((binding) => ({
-            iri:
-              binding &&
-              binding.relationship &&
-              binding.relationship.value !== undefined
-                ? binding.relationship.value
-                : undefined,
+            iri: binding && binding.relationship && binding.relationship.value,
             count:
               binding && binding.count && binding.count.value !== undefined
                 ? binding.count.value
@@ -211,10 +206,7 @@ export class GraphQlLanguageServer extends AbstractLanguageServer<
         this.namespaceMap,
         this.typeBindings
           .map((binding) => ({
-            iri:
-              binding && binding.type && binding.type.value !== undefined
-                ? binding.type.value
-                : undefined,
+            iri: binding && binding.type && binding.type.value,
             count:
               binding && binding.count && binding.count.value !== undefined
                 ? binding.count.value
