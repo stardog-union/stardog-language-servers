@@ -110,22 +110,36 @@ export class SparqlLanguageServer extends AbstractLanguageServer<
         update.relationshipBindings || this.relationshipBindings;
       this.relationshipCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.relationshipBindings.map((binding) => ({
-          iri:
-            (binding && binding.relationship && binding.relationship.value) ||
-            '',
-          count: (binding && binding.count && binding.count.value) || '',
-        }))
+        this.relationshipBindings
+          .map((binding) => ({
+            iri:
+              (binding && binding.relationship && binding.relationship.value) ||
+              undefined,
+            count:
+              binding && binding.count && binding.count.value != undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => {
+            return iri != undefined && count != undefined;
+          })
       );
     }
     if (update.typeBindings || (update.namespaces && this.typeBindings)) {
       this.typeBindings = update.typeBindings || this.typeBindings;
       this.typeCompletionItems = this.buildCompletionItemsFromData(
         this.namespaceMap,
-        this.typeBindings.map((binding) => ({
-          iri: (binding && binding.type && binding.type.value) || '',
-          count: (binding && binding.count && binding.count.value) || '',
-        }))
+        this.typeBindings
+          .map((binding) => ({
+            iri: (binding && binding.type && binding.type.value) || undefined,
+            count:
+              binding && binding.count && binding.count.value != undefined
+                ? binding.count.value
+                : undefined,
+          }))
+          .filter(({ iri, count }) => {
+            return iri != undefined && count != undefined;
+          })
       );
     }
   }
