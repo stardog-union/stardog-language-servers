@@ -96,7 +96,7 @@ describe('sparql language server', () => {
       textDocument: selectTextDoc,
       position: Position.create(0, 3),
     });
-    expect(res).toHaveLength(25);
+    expect(res).toHaveLength(26);
     expect(res[0]).toMatchObject({
       label: '?a',
       kind: 6,
