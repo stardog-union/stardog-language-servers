@@ -38,6 +38,12 @@ const pathsTextDoc = TextDocumentItem.create(
   1,
   'paths st'
 );
+const validateTextDoc = TextDocumentItem.create(
+  '/validate.rq',
+  'sparql',
+  1,
+  'valid'
+);
 
 testInitHandshakeForAllTransports(pathToServer);
 testShutdown(pathToServer);
@@ -96,7 +102,7 @@ describe('sparql language server', () => {
       textDocument: selectTextDoc,
       position: Position.create(0, 3),
     });
-    expect(res).toHaveLength(25);
+    expect(res).toHaveLength(26);
     expect(res[0]).toMatchObject({
       label: '?a',
       kind: 6,
@@ -117,7 +123,7 @@ describe('sparql language server', () => {
     });
     done();
   });
-  it('handles stardog-specific grammar', async (done) => {
+  it('handles stardog-specific path grammar', async (done) => {
     await connection.sendNotification(DidOpenTextDocumentNotification.type, {
       textDocument: pathsTextDoc,
     });
@@ -127,6 +133,19 @@ describe('sparql language server', () => {
     });
     expect(
       (res as CompletionItem[]).some((item) => item.label === 'PATHS SHORTEST')
+    ).toBe(true);
+    done();
+  });
+  it('handles stardog-specific validate grammar', async (done) => {
+    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
+      textDocument: validateTextDoc,
+    });
+    const res = await connection.sendRequest(CompletionRequest.type, {
+      textDocument: validateTextDoc,
+      position: Position.create(0, 5),
+    });
+    expect(
+      (res as CompletionItem[]).some((item) => item.label === 'VALIDATE')
     ).toBe(true);
     done();
   });
@@ -154,7 +173,7 @@ describe('w3 sparql language server', () => {
     });
   });
   afterAll(() => cp.kill());
-  it('initializes a W3SparqlParser', async (done) => {
+  it('initializes a W3SparqlParser that does not recognize stardog-specific path syntax', async (done) => {
     await connection.sendNotification(DidOpenTextDocumentNotification.type, {
       textDocument: pathsTextDoc,
     });
@@ -164,6 +183,19 @@ describe('w3 sparql language server', () => {
     });
     expect(
       (res as CompletionItem[]).some((item) => item.label === 'PATHS SHORTEST')
+    ).toBe(false);
+    done();
+  });
+  it('initializes a W3SparqlParser that does not recognize stardog-specific validate syntax', async (done) => {
+    await connection.sendNotification(DidOpenTextDocumentNotification.type, {
+      textDocument: validateTextDoc,
+    });
+    const res = await connection.sendRequest(CompletionRequest.type, {
+      textDocument: validateTextDoc,
+      position: Position.create(0, 5),
+    });
+    expect(
+      (res as CompletionItem[]).some((item) => item.label === 'VALIDATE')
     ).toBe(false);
     done();
   });
