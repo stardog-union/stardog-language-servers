@@ -1,6 +1,6 @@
 {
   "name": "stardog-graphql-language-server",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "main": "./dist/cli.js",
   "browser": "./dist/worker.js",
   "types": "./dist/types/GraphqlLanguageServer.ts",
@@ -58,7 +58,7 @@
     "class-autobind-decorator": "^3.0.1",
     "lodash.uniqby": "^4.7.0",
     "millan": "^5.3.0",
-    "stardog-language-utils": "^1.13.2",
+    "stardog-language-utils": "^1.14.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {
