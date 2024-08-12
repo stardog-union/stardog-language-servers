@@ -1,6 +1,7 @@
-import { makeCompletionItemFromPrefixedNameAndNamespaceIri } from './language-services';
-import { CompletionItem } from 'vscode-languageserver';
 import memoize from 'memoize-one';
+import { CompletionItem } from 'vscode-languageserver';
+
+import { makeCompletionItemFromPrefixedNameAndNamespaceIri } from './language-services';
 
 interface CompletionDatum {
   namespaceIri: string;
@@ -192,11 +193,19 @@ const xsd: CompletionDatum = {
   properties: [],
 };
 
+const stardog: CompletionDatum = {
+  namespaceIri: 'tag:stardog:api:',
+  datatypes: [],
+  classes: [],
+  properties: ['label'],
+};
+
 const commonCompletionData = {
   owl,
   rdf,
   rdfs,
   xsd,
+  stardog,
 };
 
 export const getCommonCompletionItemsGivenNamespaces = memoize(
